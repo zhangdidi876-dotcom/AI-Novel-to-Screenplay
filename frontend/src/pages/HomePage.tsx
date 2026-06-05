@@ -59,6 +59,27 @@ export default function HomePage() {
           rows={16}
           style={{ width: "100%", padding: 12, fontSize: 14, border: "1px solid #ccc", borderRadius: 6 }}
         />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+          <span style={{ fontSize: 12, color: "#999" }}>
+            已输入 {text.length} 个字符
+          </span>
+          {text && (
+            <button
+              onClick={() => setText("")}
+              style={{
+                padding: "4px 12px",
+                fontSize: 12,
+                color: "#666",
+                background: "#f0f0f0",
+                border: "1px solid #ddd",
+                borderRadius: 4,
+                cursor: "pointer",
+              }}
+            >
+              清空文本
+            </button>
+          )}
+        </div>
       </div>
 
       <button
