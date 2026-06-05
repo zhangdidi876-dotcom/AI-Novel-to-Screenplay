@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
-ALLOWED_EXTENSIONS = {".txt", ".docx", ".pdf"}
+ALLOWED_EXTENSIONS = {".txt", ".docx", ".pdf", ".md", ".markdown"}
 
 
 @router.post("/upload")
@@ -24,6 +24,8 @@ async def upload_chapter(file: UploadFile = File(...)):
     raw = await file.read()
 
     if ext == ".txt":
+        text = raw.decode("utf-8", errors="replace")
+    elif ext in (".md", ".markdown"):
         text = raw.decode("utf-8", errors="replace")
     elif ext == ".docx":
         text = parse_docx(raw)

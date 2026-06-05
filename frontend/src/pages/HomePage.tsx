@@ -37,11 +37,11 @@ export default function HomePage() {
 
       <div style={{ marginTop: 24 }}>
         <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-          上传章节文件（.txt / .docx / .pdf）
+          上传章节文件（.txt / .md / .docx / .pdf）
         </label>
         <input
           type="file"
-          accept=".txt,.docx,.pdf"
+          accept=".txt,.md,.docx,.pdf"
           onChange={handleFileUpload}
           disabled={uploading}
         />
