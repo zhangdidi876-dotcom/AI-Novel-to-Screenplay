@@ -1,5 +1,6 @@
 """FastAPI 应用入口"""
 
+import json
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -42,3 +43,19 @@ app.include_router(history.router, prefix="/api", tags=["历史记录"])
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/api/models")
+async def list_models():
+    """返回可用模型列表（仅展示名称，不暴露 API Key）"""
+    models = [{"name": "默认模型", "model_name": settings.ai_model_name}]
+    try:
+        extra = json.loads(settings.ai_models_json)
+        for m in extra:
+            models.append({
+                "name": m.get("name", "未命名"),
+                "model_name": m.get("model_name", ""),
+            })
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return {"models": models}
