@@ -29,6 +29,7 @@ export default function WorkspacePage() {
   const navigate = useNavigate();
 
   const [chapters, setChapters] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const [modelIndex, setModelIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState<StepKey>("input");
   const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>({
@@ -243,10 +244,17 @@ export default function WorkspacePage() {
             <h3>📖 章节预览</h3>
             <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
               共 {chapters.length.toLocaleString()} 字符。确认后开始转换。
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                style={{
+                  marginLeft: 10, padding: "2px 10px", fontSize: 12,
+                  background: "#f0f0f0", border: "1px solid #ddd", borderRadius: 4, cursor: "pointer",
+                }}
+              >
+                {showPreview ? "收起 ▲" : "展开查看 ▼"}
+              </button>
             </p>
-            <div className="chapter-list">
-              {chapters}
-            </div>
+            {showPreview && <div className="chapter-list">{chapters}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn btn-primary" onClick={handleFullConvert}>🚀 一键全流程</button>
               <button className="btn btn-secondary" onClick={handleExtractCharacters}>分步：角色提取 →</button>
