@@ -28,26 +28,42 @@ const TIME_LABELS: Record<string, string> = {
 export default function WorkspacePage() {
   const navigate = useNavigate();
 
-  const [chapters, setChapters] = useState("");
+  const loadSaved = <T,>(key: string, fallback: T): T => {
+    try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  };
+
+  const [chapters, setChapters] = useState(() => sessionStorage.getItem("chapters_text") || "");
   const [showPreview, setShowPreview] = useState(false);
   const [modelIndex, setModelIndex] = useState(0);
-  const [currentStep, setCurrentStep] = useState<StepKey>("input");
-  const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>({
-    input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle",
-  });
-
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [scenes, setScenes] = useState<Scene[]>([]);
-  const [screenplay, setScreenplay] = useState<Screenplay | null>(null);
-  const [yamlOutput, setYamlOutput] = useState("");
+  const [currentStep, setCurrentStep] = useState<StepKey>(
+    () => loadSaved("ws_step", "input")
+  );
+  const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>(
+    () => loadSaved("ws_status", { input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle" })
+  );
+  const [characters, setCharacters] = useState<Character[]>(() => loadSaved("ws_characters", []));
+  const [scenes, setScenes] = useState<Scene[]>(() => loadSaved("ws_scenes", []));
+  const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("ws_screenplay", null));
+  const [yamlOutput, setYamlOutput] = useState(() => loadSaved("ws_yaml", ""));
   const [error, setError] = useState("");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+  // 持久化到 sessionStorage
+  useEffect(() => { if (currentStep) sessionStorage.setItem("ws_step", JSON.stringify(currentStep)); }, [currentStep]);
+  useEffect(() => { sessionStorage.setItem("ws_status", JSON.stringify(stepStatus)); }, [stepStatus]);
+  useEffect(() => { sessionStorage.setItem("ws_characters", JSON.stringify(characters)); }, [characters]);
+  useEffect(() => { sessionStorage.setItem("ws_scenes", JSON.stringify(scenes)); }, [scenes]);
+  useEffect(() => { sessionStorage.setItem("ws_screenplay", JSON.stringify(screenplay)); }, [screenplay]);
+  useEffect(() => { if (yamlOutput) sessionStorage.setItem("ws_yaml", JSON.stringify(yamlOutput)); }, [yamlOutput]);
+
   useEffect(() => {
-    const text = sessionStorage.getItem("chapters_text");
-    if (!text) { navigate("/"); return; }
-    setChapters(text);
-  }, [navigate]);
+    if (!chapters) {
+      const text = sessionStorage.getItem("chapters_text");
+      if (!text) { navigate("/"); return; }
+      setChapters(text);
+    }
+  }, [navigate, chapters]);
 
   const anyLoading = Object.values(stepStatus).some((s) => s === "loading");
 
@@ -409,22 +425,22 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="workspace">
-      <div className="workspace-sidebar">
-        <div style={{ padding: "0 20px 16px", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>🎬 创作工作台</div>
-          <button onClick={() => navigate("/")} className="btn btn-sm" style={{ marginTop: 8, width: "100%", fontSize: 12 }}>
-            ← 返回首页
-          </button>
-          <button onClick={() => navigate("/history")} className="btn btn-sm" style={{ marginTop: 4, width: "100%", fontSize: 12 }}>
-            📊 历史记录
-          </button>
+    <>
+      <nav className="navbar">
+        <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
+        <div className="navbar-links">
+          <button onClick={() => navigate("/")}>🏠 首页</button>
+          <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
-        <div style={{ padding: "8px 0", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
-          <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
-        </div>
-        {STEPS.map((step) => {
-          const status = stepStatus[step.key] || "idle";
+      </nav>
+      <div className="workspace">
+        <div className="workspace-sidebar">
+          <div style={{ padding: "12px 20px 12px", borderBottom: "1px solid #e0e0e0", marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#1a73e8", marginBottom: 10 }}>转换步骤</div>
+            <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
+          </div>
+          {STEPS.map((step) => {
+            const status = stepStatus[step.key] || "idle";
           return (
             <div
               key={step.key}
@@ -469,5 +485,6 @@ export default function WorkspacePage() {
       </div>
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
+    </>
   );
 }
