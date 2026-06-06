@@ -57,11 +57,7 @@ class AIClient:
 
     @staticmethod
     def parse_json(response: str) -> dict:
-        """从 AI 回复中提取 JSON（多层容错）
-
-        部分模型（尤其是国内模型）即使开了 json_mode 也可能在 JSON
-        前后附加说明文字、漏掉闭合括号、或使用中文引号。本方法逐层尝试。
-        """
+        """从 AI 回复中提取 JSON（多层容错）"""
         # 1. 直接解析
         try:
             return json.loads(response)
@@ -81,17 +77,23 @@ class AIClient:
         end = response.rfind("}")
         if start != -1 and end > start:
             candidate = response[start:end + 1]
-            # 清洗常见问题：尾部多余逗号
             candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
                 pass
 
-        # 4. 如果仍然失败，尝试修复不完整的 JSON（补全缺失的闭合括号）
+        # 4. 无花括号 — 尝试将整个响应包裹为对象
+        if start == -1:
+            candidate = "{" + response.strip() + "}"
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        # 5. 补全缺失的闭合括号
         if start != -1:
             candidate = response[start:]
-            # 统计括号数量，自动补全
             open_braces = candidate.count("{") - candidate.count("}")
             open_brackets = candidate.count("[") - candidate.count("]")
             candidate += "}" * open_braces + "]" * open_brackets
