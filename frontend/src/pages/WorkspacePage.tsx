@@ -169,6 +169,26 @@ export default function WorkspacePage() {
     }
   };
 
+  const handleSaveHistory = async () => {
+    try {
+      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
+      await fetch("/api/history/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: screenplay?.meta?.title || "未命名项目",
+          chapter_count: chMatch ? chMatch.length : 0,
+          model_name: `model_${modelIndex}`,
+          input_text: chapters,
+          output_yaml: yamlOutput,
+        }),
+      });
+      showToast("success", "已保存到历史记录");
+    } catch {
+      showToast("error", "保存失败");
+    }
+  };
+
   const handleDownload = () => {
     const blob = new Blob([yamlOutput], { type: "text/yaml;charset=utf-8" });
     const a = document.createElement("a");
@@ -336,6 +356,7 @@ export default function WorkspacePage() {
                   <button className="btn btn-primary btn-sm" onClick={handleDownload}>📥 下载</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleCopy}>📋 复制</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleExportYaml}>🔄 重新生成</button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleSaveHistory}>💾 保存历史</button>
                 </div>
                 <div className="yaml-preview">{yamlOutput}</div>
               </>
