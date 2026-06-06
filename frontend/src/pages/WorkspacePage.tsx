@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Character, Scene, Screenplay, StepStatus } from "../types";
+import ModelConfig from "../components/ModelConfig";
 
 type StepKey = "input" | "characters" | "scenes" | "script" | "export";
 
@@ -28,6 +29,7 @@ export default function WorkspacePage() {
   const navigate = useNavigate();
 
   const [chapters, setChapters] = useState("");
+  const [modelIndex, setModelIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState<StepKey>("input");
   const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>({
     input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle",
@@ -55,7 +57,7 @@ export default function WorkspacePage() {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chapters, model_index: 0 }),
+      body: JSON.stringify({ text: chapters, model_index: modelIndex }),
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
     return res.json();
@@ -125,7 +127,7 @@ export default function WorkspacePage() {
       const res = await fetch("/api/convert/full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: chapters, model_index: 0 }),
+        body: JSON.stringify({ text: chapters, model_index: modelIndex }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
       const data = await res.json();
@@ -354,6 +356,9 @@ export default function WorkspacePage() {
           <button onClick={() => navigate("/")} className="btn btn-sm" style={{ marginTop: 8, width: "100%", fontSize: 12 }}>
             ← 返回首页
           </button>
+        </div>
+        <div style={{ padding: "8px 0", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
+          <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
         </div>
         {STEPS.map((step) => {
           const status = stepStatus[step.key] || "idle";
