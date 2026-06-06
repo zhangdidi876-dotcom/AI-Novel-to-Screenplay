@@ -51,7 +51,16 @@ export default function WorkspacePage() {
   const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("screenplay", null));
   const [yamlOutput, setYamlOutput] = useState(() => loadSaved("yaml", ""));
   const [error, setError] = useState("");
+  const [siblingIds, setSiblingIds] = useState<string[]>([]);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
+  // 同步同级转换列表
+  useEffect(() => {
+    try {
+      const list: string[] = JSON.parse(sessionStorage.getItem("conv_list") || "[]");
+      setSiblingIds(list.filter((id: string) => id !== convId).slice(0, 5));
+    } catch { setSiblingIds([]); }
+  }, [convId]);
 
   // 持久化（按 ID 隔离）
   useEffect(() => { if (currentStep) sessionStorage.setItem(P("step"), JSON.stringify(currentStep)); }, [currentStep]);
@@ -60,6 +69,18 @@ export default function WorkspacePage() {
   useEffect(() => { sessionStorage.setItem(P("scenes"), JSON.stringify(scenes)); }, [scenes]);
   useEffect(() => { sessionStorage.setItem(P("screenplay"), JSON.stringify(screenplay)); }, [screenplay]);
   useEffect(() => { if (yamlOutput) sessionStorage.setItem(P("yaml"), JSON.stringify(yamlOutput)); }, [yamlOutput]);
+
+  // 确保当前转换 ID 在活跃列表中
+  useEffect(() => {
+    try {
+      const list: string[] = JSON.parse(sessionStorage.getItem("conv_list") || "[]");
+      if (!list.includes(convId)) {
+        list.unshift(convId);
+        if (list.length > 10) list.length = 10;
+        sessionStorage.setItem("conv_list", JSON.stringify(list));
+      }
+    } catch {}
+  }, [convId]);
 
   useEffect(() => {
     if (!chapters) {
@@ -433,17 +454,12 @@ export default function WorkspacePage() {
       <nav className="navbar">
         <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
         <div className="navbar-links">
-          {(() => {
-            try {
-              const ids: string[] = JSON.parse(sessionStorage.getItem("conv_list") || "[]");
-              return ids.filter((id: string) => id !== convId).slice(0, 3).map((id: string) => (
-                <button key={id} onClick={() => navigate(`/workspace?id=${id}`)}
-                  style={{ fontSize: 11, opacity: 0.7 }}>
-                  🔄 转换 {id.slice(-4)}
-                </button>
-              ));
-            } catch { return null; }
-          })()}
+          {siblingIds.map((id: string) => (
+            <button key={id} onClick={() => navigate(`/workspace?id=${id}`)}
+              style={{ fontSize: 11, opacity: 0.7 }}>
+              🔄 转换 {id.slice(-4)}
+            </button>
+          ))}
           <button onClick={() => navigate("/")}>🏠 首页</button>
           <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
