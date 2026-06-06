@@ -80,10 +80,25 @@ export default function WorkspacePage() {
     }
   };
 
-  // ── 分步：场景拆分 ──
+  // ── 分步：场景拆分（无角色时自动先提取） ──
   const handleExtractScenes = async () => {
     setCurrentStep("scenes");
-    setStepStatus((s) => ({ ...s, scenes: "loading" }));
+    if (characters.length === 0) {
+      setStepStatus((s) => ({ ...s, characters: "loading", scenes: "loading" }));
+      showToast("success", "先自动提取角色...");
+      try {
+        const charData = await apiCall("/api/extract/characters");
+        setCharacters(charData.characters || []);
+        setStepStatus((s) => ({ ...s, characters: "done" }));
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "未知错误");
+        setStepStatus((s) => ({ ...s, characters: "error", scenes: "error" }));
+        showToast("error", "角色提取失败");
+        return;
+      }
+    } else {
+      setStepStatus((s) => ({ ...s, scenes: "loading" }));
+    }
     setError("");
     try {
       const data = await apiCall("/api/extract/scenes");
@@ -98,12 +113,28 @@ export default function WorkspacePage() {
     }
   };
 
-  // ── 分步：剧本生成 ──
+  // ── 分步：剧本生成（无角色/场景时自动先执行） ──
   const handleGenerateScript = async () => {
     setCurrentStep("script");
     setStepStatus((s) => ({ ...s, script: "loading" }));
     setError("");
     try {
+      // 无角色时自动提取
+      if (characters.length === 0) {
+        setStepStatus((s) => ({ ...s, characters: "loading" }));
+        const charData = await apiCall("/api/extract/characters");
+        setCharacters(charData.characters || []);
+        setStepStatus((s) => ({ ...s, characters: "done" }));
+      }
+      // 无场景时自动拆分
+      if (scenes.length === 0) {
+        setCurrentStep("scenes");
+        setStepStatus((s) => ({ ...s, scenes: "loading" }));
+        const sceneData = await apiCall("/api/extract/scenes");
+        if (sceneData.characters) setCharacters(sceneData.characters);
+        setScenes(sceneData.scenes || []);
+        setStepStatus((s) => ({ ...s, scenes: "done" }));
+      }
       const data = await apiCall("/api/generate/script");
       const sp = data.screenplay as Screenplay;
       setScreenplay(sp);
@@ -390,7 +421,15 @@ export default function WorkspacePage() {
             <div
               key={step.key}
               className={`step-item ${currentStep === step.key ? "active" : ""}`}
-              onClick={() => { if (status === "done" || status === "idle") setCurrentStep(step.key); }}
+              onClick={() => {
+                if (status === "done" || status === "idle") {
+                  setCurrentStep(step.key);
+                  // 点击未执行的步骤时自动触发
+                  if (status === "idle" && step.key === "characters") handleExtractCharacters();
+                  else if (status === "idle" && step.key === "scenes") handleExtractScenes();
+                  else if (status === "idle" && step.key === "script") handleGenerateScript();
+                }
+              }}
             >
               <span className={`step-icon ${status}`}>
                 {status === "loading" ? "⋯" : status === "done" ? "✓" : status === "error" ? "✗" : step.icon}

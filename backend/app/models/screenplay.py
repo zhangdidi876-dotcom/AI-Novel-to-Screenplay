@@ -9,7 +9,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-# ── 枚举类型 ─────────────────────────────────────────────
+# ── 枚举类型 ──
 
 
 class CharacterRole(str, Enum):
@@ -41,7 +41,7 @@ class ElementType(str, Enum):
     SHOT = "shot"
 
 
-# ── 嵌套子模型 ───────────────────────────────────────────
+# ── 嵌套子模型 ───
 
 
 class Relationship(BaseModel):
@@ -72,7 +72,7 @@ class ContentElement(BaseModel):
     parenthetical: str = Field("", description="对白括号备注")
 
 
-# ── 顶层模型 ─────────────────────────────────────────────
+# ── 顶层模型 ───
 
 
 class Meta(BaseModel):
