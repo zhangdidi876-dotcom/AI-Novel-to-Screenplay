@@ -356,6 +356,9 @@ export default function WorkspacePage() {
           <button onClick={() => navigate("/")} className="btn btn-sm" style={{ marginTop: 8, width: "100%", fontSize: 12 }}>
             ← 返回首页
           </button>
+          <button onClick={() => navigate("/history")} className="btn btn-sm" style={{ marginTop: 4, width: "100%", fontSize: 12 }}>
+            📊 历史记录
+          </button>
         </div>
         <div style={{ padding: "8px 0", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
           <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
