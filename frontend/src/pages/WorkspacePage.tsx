@@ -152,6 +152,23 @@ export default function WorkspacePage() {
     }
   };
 
+  const doSaveHistory = async (yaml: string) => {
+    try {
+      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
+      await fetch("/api/history/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: screenplay?.meta?.title || "未命名项目",
+          chapter_count: chMatch ? chMatch.length : 0,
+          model_name: `model_${modelIndex}`,
+          input_text: chapters,
+          output_yaml: yaml,
+        }),
+      });
+    } catch { /* 静默失败，不影响主流程 */ }
+  };
+
   // ── 一键全流程 ──
   const handleFullConvert = async () => {
     setCurrentStep("characters");
@@ -171,6 +188,7 @@ export default function WorkspacePage() {
       if (sp.scenes) setScenes(sp.scenes);
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", `完成: ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+      doSaveHistory("");
       setCurrentStep("script");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "未知错误";
@@ -180,7 +198,7 @@ export default function WorkspacePage() {
     }
   };
 
-  // ── 导出 YAML ──
+  // ── 导出 YAML（自动保存历史）──
   const handleExportYaml = async () => {
     setCurrentStep("export");
     setStepStatus((s) => ({ ...s, export: "loading" }));
@@ -194,32 +212,14 @@ export default function WorkspacePage() {
       });
       if (!res.ok) throw new Error("导出失败");
       const data = await res.json();
-      setYamlOutput(data.yaml || "");
+      const yaml = data.yaml || "";
+      setYamlOutput(yaml);
+      await doSaveHistory(yaml);
       setStepStatus((s) => ({ ...s, export: "done" }));
-      showToast("success", "YAML 生成完成");
+      showToast("success", "YAML 已生成，历史已自动保存");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, export: "error" }));
-    }
-  };
-
-  const handleSaveHistory = async () => {
-    try {
-      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
-      await fetch("/api/history/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: screenplay?.meta?.title || "未命名项目",
-          chapter_count: chMatch ? chMatch.length : 0,
-          model_name: `model_${modelIndex}`,
-          input_text: chapters,
-          output_yaml: yamlOutput,
-        }),
-      });
-      showToast("success", "已保存到历史记录");
-    } catch {
-      showToast("error", "保存失败");
     }
   };
 
@@ -227,7 +227,7 @@ export default function WorkspacePage() {
     const blob = new Blob([yamlOutput], { type: "text/yaml;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "screenplay.yml";
+    a.download = "screenplay.yaml";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -396,7 +396,6 @@ export default function WorkspacePage() {
                   <button className="btn btn-primary btn-sm" onClick={handleDownload}>📥 下载</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleCopy}>📋 复制</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleExportYaml}>🔄 重新生成</button>
-                  <button className="btn btn-secondary btn-sm" onClick={handleSaveHistory}>💾 保存历史</button>
                 </div>
                 <div className="yaml-preview">{yamlOutput}</div>
               </>
