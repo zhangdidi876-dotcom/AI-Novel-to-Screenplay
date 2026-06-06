@@ -49,6 +49,8 @@ export default function WorkspacePage() {
     setChapters(text);
   }, [navigate]);
 
+  const anyLoading = Object.values(stepStatus).some((s) => s === "loading");
+
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3500);
@@ -429,12 +431,15 @@ export default function WorkspacePage() {
               key={step.key}
               className={`step-item ${currentStep === step.key ? "active" : ""}`}
               onClick={() => {
-                if (status === "done" || status === "idle") {
+                // 加载中任何步骤都可以切换视角查看
+                if (status === "loading" || status === "done" || status === "idle" || status === "error") {
                   setCurrentStep(step.key);
-                  // 点击未执行的步骤时自动触发
-                  if (status === "idle" && step.key === "characters") handleExtractCharacters();
-                  else if (status === "idle" && step.key === "scenes") handleExtractScenes();
-                  else if (status === "idle" && step.key === "script") handleGenerateScript();
+                }
+                // 仅在无加载任务时，点击未执行步骤才自动触发
+                if (!anyLoading && status === "idle") {
+                  if (step.key === "characters") handleExtractCharacters();
+                  else if (step.key === "scenes") handleExtractScenes();
+                  else if (step.key === "script") handleGenerateScript();
                 }
               }}
             >
@@ -446,7 +451,23 @@ export default function WorkspacePage() {
           );
         })}
       </div>
-      <div className="workspace-main">{renderMain()}</div>
+      <div className="workspace-main">
+        {anyLoading && (
+          <div style={{
+            background: "#e8f0fe", border: "1px solid #a8c8fa", borderRadius: 6,
+            padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#1a73e8",
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            <span style={{ animation: "pulse 1s infinite", fontSize: 16 }}>⏳</span>
+            {stepStatus.characters === "loading" && "正在提取角色..."}
+            {stepStatus.scenes === "loading" && "正在拆分场景..."}
+            {stepStatus.script === "loading" && "正在生成剧本..."}
+            {stepStatus.export === "loading" && "正在导出 YAML..."}
+            <span style={{ fontSize: 11, color: "#666" }}>（可自由切换左侧步骤查看历史结果）</span>
+          </div>
+        )}
+        {renderMain()}
+      </div>
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
   );
