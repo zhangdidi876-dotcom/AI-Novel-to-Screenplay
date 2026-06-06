@@ -51,6 +51,71 @@ export default function WorkspacePage() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const apiCall = async (url: string): Promise<any> => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: chapters, model_index: 0 }),
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
+    return res.json();
+  };
+
+  // ── 分步：角色提取 ──
+  const handleExtractCharacters = async () => {
+    setCurrentStep("characters");
+    setStepStatus((s) => ({ ...s, characters: "loading" }));
+    setError("");
+    try {
+      const data = await apiCall("/api/extract/characters");
+      setCharacters(data.characters || []);
+      setStepStatus((s) => ({ ...s, characters: "done" }));
+      showToast("success", `提取 ${data.count || 0} 个角色`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "未知错误");
+      setStepStatus((s) => ({ ...s, characters: "error" }));
+      showToast("error", "角色提取失败");
+    }
+  };
+
+  // ── 分步：场景拆分 ──
+  const handleExtractScenes = async () => {
+    setCurrentStep("scenes");
+    setStepStatus((s) => ({ ...s, scenes: "loading" }));
+    setError("");
+    try {
+      const data = await apiCall("/api/extract/scenes");
+      if (data.characters) setCharacters(data.characters);
+      setScenes(data.scenes || []);
+      setStepStatus((s) => ({ ...s, characters: "done", scenes: "done" }));
+      showToast("success", `拆分 ${data.scene_count || 0} 个场景`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "未知错误");
+      setStepStatus((s) => ({ ...s, scenes: "error" }));
+      showToast("error", "场景拆分失败");
+    }
+  };
+
+  // ── 分步：剧本生成 ──
+  const handleGenerateScript = async () => {
+    setCurrentStep("script");
+    setStepStatus((s) => ({ ...s, script: "loading" }));
+    setError("");
+    try {
+      const data = await apiCall("/api/generate/script");
+      const sp = data.screenplay as Screenplay;
+      setScreenplay(sp);
+      if (sp.characters) setCharacters(sp.characters);
+      if (sp.scenes) setScenes(sp.scenes);
+      setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
+      showToast("success", "剧本生成完成");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "未知错误");
+      setStepStatus((s) => ({ ...s, script: "error" }));
+      showToast("error", "剧本生成失败");
+    }
+  };
+
   // ── 一键全流程 ──
   const handleFullConvert = async () => {
     setCurrentStep("characters");
@@ -130,19 +195,30 @@ export default function WorkspacePage() {
               {chapters.slice(0, 3000)}
               {chapters.length > 3000 && <p style={{ color: "#999" }}>...（仅显示前 3000 字符）</p>}
             </div>
-            <button className="btn btn-primary" onClick={handleFullConvert} style={{ marginTop: 16 }}>
-              🚀 一键全流程转换
-            </button>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button className="btn btn-primary" onClick={handleFullConvert}>🚀 一键全流程</button>
+              <button className="btn btn-secondary" onClick={handleExtractCharacters}>分步：角色提取 →</button>
+            </div>
           </div>
         );
 
       case "characters":
         return (
           <div>
-            <h3 style={{ marginBottom: 16 }}>👤 角色列表</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3>👤 角色列表</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {characters.length > 0 && (
+                  <>
+                    <button className="btn btn-secondary btn-sm" onClick={handleExtractCharacters}>🔄 重新提取</button>
+                    <button className="btn btn-primary btn-sm" onClick={handleExtractScenes}>下一步：场景拆分 →</button>
+                  </>
+                )}
+              </div>
+            </div>
             {error && <p style={{ color: "#c5221f", fontSize: 13, marginBottom: 12 }}>错误：{error}</p>}
             {characters.length === 0 && stepStatus.characters !== "loading" && (
-              <div className="empty-state"><div className="icon">👤</div><p>点击"一键转换"开始</p></div>
+              <div className="empty-state"><div className="icon">👤</div><p>点击"一键转换"或"分步"开始</p></div>
             )}
             {stepStatus.characters === "loading" && <p>⏳ AI 正在分析角色...</p>}
             {characters.map((c) => (
@@ -170,9 +246,19 @@ export default function WorkspacePage() {
       case "scenes":
         return (
           <div>
-            <h3 style={{ marginBottom: 16 }}>🎬 场景列表</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3>🎬 场景列表</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {scenes.length > 0 && (
+                  <>
+                    <button className="btn btn-secondary btn-sm" onClick={handleExtractScenes}>🔄 重新拆分</button>
+                    <button className="btn btn-primary btn-sm" onClick={handleGenerateScript}>下一步：生成剧本 →</button>
+                  </>
+                )}
+              </div>
+            </div>
             {error && <p style={{ color: "#c5221f", fontSize: 13, marginBottom: 12 }}>错误：{error}</p>}
-            {scenes.length === 0 && <div className="empty-state"><div className="icon">🎬</div><p>点击"一键转换"开始</p></div>}
+            {scenes.length === 0 && <div className="empty-state"><div className="icon">🎬</div><p>先提取角色后再拆分场景</p></div>}
             {scenes.map((s) => (
               <div key={s.id} className="scene-card">
                 <div className="scene-header">
@@ -197,7 +283,17 @@ export default function WorkspacePage() {
       case "script":
         return (
           <div>
-            <h3 style={{ marginBottom: 16 }}>📝 剧本预览</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3>📝 剧本预览</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {scenes.length > 0 && (
+                  <>
+                    <button className="btn btn-secondary btn-sm" onClick={handleGenerateScript}>🔄 重新生成</button>
+                    <button className="btn btn-primary btn-sm" onClick={handleExportYaml}>导出 YAML →</button>
+                  </>
+                )}
+              </div>
+            </div>
             {scenes.map((s) => (
               <div key={s.id} className="scene-card">
                 <div className="scene-header">
