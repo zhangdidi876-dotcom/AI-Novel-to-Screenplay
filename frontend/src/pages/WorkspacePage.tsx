@@ -245,8 +245,7 @@ export default function WorkspacePage() {
               共 {chapters.length.toLocaleString()} 字符。确认后开始转换。
             </p>
             <div className="chapter-list">
-              {chapters.slice(0, 3000)}
-              {chapters.length > 3000 && <p style={{ color: "#999" }}>...（仅显示前 3000 字符）</p>}
+              {chapters}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn btn-primary" onClick={handleFullConvert}>🚀 一键全流程</button>
