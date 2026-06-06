@@ -18,9 +18,9 @@ CHARACTER_PROMPT = """你是一位专业的剧本分析师。请从以下小说�
 - extra: 龙套/背景角色
 
 ## 输出格式
-{
+{{
   "characters": [
-    {
+    {{
       "id": "char_001",
       "name": "角色姓名",
       "aliases": ["别名1", "别名2"],
@@ -30,12 +30,12 @@ CHARACTER_PROMPT = """你是一位专业的剧本分析师。请从以下小说�
       "occupation": "剑客",
       "description": "外貌与性格的简洁描述",
       "traits": ["勇敢", "冲动"],
-      "relationships": [{"target": "char_002", "relation": "挚友"}],
+      "relationships": [{{"target": "char_002", "relation": "挚友"}}],
       "arc_summary": "",
       "notes": "补充说明"
-    }
+    }}
   ]
-}
+}}
 
 ## 注意
 - id 格式为 char_001、char_002...按出场顺序编号
