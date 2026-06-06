@@ -71,7 +71,7 @@ async def generate_script(
     response = await client.chat(
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7,
-        max_tokens=32768,
+        max_tokens=65536,
         json_mode=True,
     )
     data = client.parse_json(response)

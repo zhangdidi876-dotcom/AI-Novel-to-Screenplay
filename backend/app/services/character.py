@@ -60,7 +60,7 @@ async def extract_characters(
     response = await client.chat(
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
-        max_tokens=8192,
+        max_tokens=16384,
         json_mode=True,
     )
     data = client.parse_json(response)

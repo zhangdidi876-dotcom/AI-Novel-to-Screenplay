@@ -57,12 +57,17 @@ class AIClient:
 
     @staticmethod
     def parse_json(response: str) -> dict:
-        """从 AI 回复中提取 JSON（多层容错）"""
-        # 1. 尝试直接解析
+        """从 AI 回复中提取 JSON（多层容错）
+
+        部分模型（尤其是国内模型）即使开了 json_mode 也可能在 JSON
+        前后附加说明文字、漏掉闭合括号、或使用中文引号。本方法逐层尝试。
+        """
+        # 1. 直接解析
         try:
             return json.loads(response)
         except json.JSONDecodeError:
             pass
+
         # 2. 提取 ```json ... ``` 代码块
         match = re.search(r"```(?:json)?\s*([\s\S]*?)```", response)
         if match:
@@ -70,14 +75,37 @@ class AIClient:
                 return json.loads(match.group(1))
             except json.JSONDecodeError:
                 pass
-        # 3. 提取第一个 { ... } 块
-        match = re.search(r"\{[\s\S]*\}", response)
-        if match:
+
+        # 3. 找到第一个 { 和最后一个 }，提取中间内容
+        start = response.find("{")
+        end = response.rfind("}")
+        if start != -1 and end > start:
+            candidate = response[start:end + 1]
+            # 清洗常见问题：尾部多余逗号
+            candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
             try:
-                return json.loads(match.group(0))
+                return json.loads(candidate)
             except json.JSONDecodeError:
                 pass
-        raise ValueError(f"无法从 AI 回复中解析 JSON: {response[:200]}...")
+
+        # 4. 如果仍然失败，尝试修复不完整的 JSON（补全缺失的闭合括号）
+        if start != -1:
+            candidate = response[start:]
+            # 统计括号数量，自动补全
+            open_braces = candidate.count("{") - candidate.count("}")
+            open_brackets = candidate.count("[") - candidate.count("]")
+            candidate += "}" * open_braces + "]" * open_brackets
+            candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        raise ValueError(
+            f"无法解析 AI 回复为 JSON。"
+            f"前200字符: {response[:200]}\n"
+            f"后200字符: {response[-200:] if len(response) > 200 else ''}"
+        )
 
 
 default_client = AIClient()
