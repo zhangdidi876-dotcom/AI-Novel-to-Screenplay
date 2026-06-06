@@ -37,10 +37,13 @@ export default function HomePage() {
     setUploading(false);
   };
 
-  const activeIds = (() => {
-    try { return JSON.parse(sessionStorage.getItem("conv_list") || "[]") as string[]; }
-    catch { return []; }
-  })();
+  const [activeIds, setActiveIds] = useState<string[]>([]);
+
+  // 每次进入首页时刷新活跃转换列表
+  useEffect(() => {
+    try { setActiveIds(JSON.parse(sessionStorage.getItem("conv_list") || "[]")); }
+    catch { setActiveIds([]); }
+  }, []);
 
   const handleStart = () => {
     if (!text.trim()) return;
