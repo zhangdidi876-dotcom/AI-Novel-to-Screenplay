@@ -18,6 +18,73 @@ body {
   min-height: 100vh;
 }
 
+/* ── 顶部导航栏 ── */
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-brand {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a73e8;
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.navbar-links a,
+.navbar-links button {
+  font-size: 13px;
+  color: #555;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.navbar-links a:hover,
+.navbar-links button:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.navbar-status {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.navbar-status.ok {
+  background: #e6f4ea;
+  color: #1e8e3e;
+}
+
+.navbar-status.err {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
 /* ── 通用按钮 ── */
 
 .btn {

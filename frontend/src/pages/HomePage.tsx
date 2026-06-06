@@ -44,24 +44,26 @@ export default function HomePage() {
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "40px auto", padding: 24 }}>
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>🎬 AI 剧本创作工具</h1>
-        <p style={{ color: "#666", fontSize: 14 }}>
-          将小说文本自动转换为结构化剧本（YAML 格式）
-        </p>
-        <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
-          后端：
-          <span style={{ color: healthOk ? "#1e8e3e" : healthOk === false ? "#c5221f" : "#999" }}>
+    <>
+      <nav className="navbar">
+        <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
+        <div className="navbar-links">
+          <span className={`navbar-status ${healthOk ? "ok" : healthOk === false ? "err" : ""}`}>
             {healthOk === null ? "检测中..." : healthOk ? "✅ 已连接" : "❌ 未连接"}
           </span>
-          <span style={{ margin: "0 12px" }}>|</span>
-          <a href="/history" onClick={(e) => { e.preventDefault(); navigate("/history"); }}
-             style={{ color: "#1a73e8", textDecoration: "none" }}>
-            📊 历史记录
-          </a>
-        </p>
-      </div>
+          <button onClick={() => navigate("/history")}>📊 历史记录</button>
+          {sessionStorage.getItem("ws_characters") && (
+            <button onClick={() => navigate("/workspace")}>📝 继续上次转换</button>
+          )}
+        </div>
+      </nav>
+      <div style={{ maxWidth: 720, margin: "40px auto", padding: 24 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <h1 style={{ fontSize: 28, marginBottom: 8 }}>将小说转化为剧本</h1>
+          <p style={{ color: "#666", fontSize: 14 }}>
+            AI 自动提取角色、拆分场景、生成结构化剧本（YAML 格式）
+          </p>
+        </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">📂 上传章节文件</div>
@@ -114,6 +116,7 @@ export default function HomePage() {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -28,26 +28,42 @@ const TIME_LABELS: Record<string, string> = {
 export default function WorkspacePage() {
   const navigate = useNavigate();
 
-  const [chapters, setChapters] = useState("");
+  const loadSaved = <T,>(key: string, fallback: T): T => {
+    try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  };
+
+  const [chapters, setChapters] = useState(() => sessionStorage.getItem("chapters_text") || "");
   const [showPreview, setShowPreview] = useState(false);
   const [modelIndex, setModelIndex] = useState(0);
-  const [currentStep, setCurrentStep] = useState<StepKey>("input");
-  const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>({
-    input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle",
-  });
-
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [scenes, setScenes] = useState<Scene[]>([]);
-  const [screenplay, setScreenplay] = useState<Screenplay | null>(null);
-  const [yamlOutput, setYamlOutput] = useState("");
+  const [currentStep, setCurrentStep] = useState<StepKey>(
+    () => loadSaved("ws_step", "input")
+  );
+  const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>(
+    () => loadSaved("ws_status", { input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle" })
+  );
+  const [characters, setCharacters] = useState<Character[]>(() => loadSaved("ws_characters", []));
+  const [scenes, setScenes] = useState<Scene[]>(() => loadSaved("ws_scenes", []));
+  const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("ws_screenplay", null));
+  const [yamlOutput, setYamlOutput] = useState(() => loadSaved("ws_yaml", ""));
   const [error, setError] = useState("");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+  // 持久化到 sessionStorage
+  useEffect(() => { if (currentStep) sessionStorage.setItem("ws_step", JSON.stringify(currentStep)); }, [currentStep]);
+  useEffect(() => { sessionStorage.setItem("ws_status", JSON.stringify(stepStatus)); }, [stepStatus]);
+  useEffect(() => { sessionStorage.setItem("ws_characters", JSON.stringify(characters)); }, [characters]);
+  useEffect(() => { sessionStorage.setItem("ws_scenes", JSON.stringify(scenes)); }, [scenes]);
+  useEffect(() => { sessionStorage.setItem("ws_screenplay", JSON.stringify(screenplay)); }, [screenplay]);
+  useEffect(() => { if (yamlOutput) sessionStorage.setItem("ws_yaml", JSON.stringify(yamlOutput)); }, [yamlOutput]);
+
   useEffect(() => {
-    const text = sessionStorage.getItem("chapters_text");
-    if (!text) { navigate("/"); return; }
-    setChapters(text);
-  }, [navigate]);
+    if (!chapters) {
+      const text = sessionStorage.getItem("chapters_text");
+      if (!text) { navigate("/"); return; }
+      setChapters(text);
+    }
+  }, [navigate, chapters]);
 
   const anyLoading = Object.values(stepStatus).some((s) => s === "loading");
 
@@ -152,6 +168,23 @@ export default function WorkspacePage() {
     }
   };
 
+  const doSaveHistory = async (yaml: string) => {
+    try {
+      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
+      await fetch("/api/history/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: screenplay?.meta?.title || "未命名项目",
+          chapter_count: chMatch ? chMatch.length : 0,
+          model_name: `model_${modelIndex}`,
+          input_text: chapters,
+          output_yaml: yaml,
+        }),
+      });
+    } catch { /* 静默失败，不影响主流程 */ }
+  };
+
   // ── 一键全流程 ──
   const handleFullConvert = async () => {
     setCurrentStep("characters");
@@ -171,6 +204,7 @@ export default function WorkspacePage() {
       if (sp.scenes) setScenes(sp.scenes);
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", `完成: ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+      doSaveHistory("");
       setCurrentStep("script");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "未知错误";
@@ -180,7 +214,7 @@ export default function WorkspacePage() {
     }
   };
 
-  // ── 导出 YAML ──
+  // ── 导出 YAML（自动保存历史）──
   const handleExportYaml = async () => {
     setCurrentStep("export");
     setStepStatus((s) => ({ ...s, export: "loading" }));
@@ -194,32 +228,14 @@ export default function WorkspacePage() {
       });
       if (!res.ok) throw new Error("导出失败");
       const data = await res.json();
-      setYamlOutput(data.yaml || "");
+      const yaml = data.yaml || "";
+      setYamlOutput(yaml);
+      await doSaveHistory(yaml);
       setStepStatus((s) => ({ ...s, export: "done" }));
-      showToast("success", "YAML 生成完成");
+      showToast("success", "YAML 已生成，历史已自动保存");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, export: "error" }));
-    }
-  };
-
-  const handleSaveHistory = async () => {
-    try {
-      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
-      await fetch("/api/history/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: screenplay?.meta?.title || "未命名项目",
-          chapter_count: chMatch ? chMatch.length : 0,
-          model_name: `model_${modelIndex}`,
-          input_text: chapters,
-          output_yaml: yamlOutput,
-        }),
-      });
-      showToast("success", "已保存到历史记录");
-    } catch {
-      showToast("error", "保存失败");
     }
   };
 
@@ -227,7 +243,7 @@ export default function WorkspacePage() {
     const blob = new Blob([yamlOutput], { type: "text/yaml;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "screenplay.yml";
+    a.download = "screenplay.yaml";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -396,7 +412,6 @@ export default function WorkspacePage() {
                   <button className="btn btn-primary btn-sm" onClick={handleDownload}>📥 下载</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleCopy}>📋 复制</button>
                   <button className="btn btn-secondary btn-sm" onClick={handleExportYaml}>🔄 重新生成</button>
-                  <button className="btn btn-secondary btn-sm" onClick={handleSaveHistory}>💾 保存历史</button>
                 </div>
                 <div className="yaml-preview">{yamlOutput}</div>
               </>
@@ -410,22 +425,22 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="workspace">
-      <div className="workspace-sidebar">
-        <div style={{ padding: "0 20px 16px", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>🎬 创作工作台</div>
-          <button onClick={() => navigate("/")} className="btn btn-sm" style={{ marginTop: 8, width: "100%", fontSize: 12 }}>
-            ← 返回首页
-          </button>
-          <button onClick={() => navigate("/history")} className="btn btn-sm" style={{ marginTop: 4, width: "100%", fontSize: 12 }}>
-            📊 历史记录
-          </button>
+    <>
+      <nav className="navbar">
+        <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
+        <div className="navbar-links">
+          <button onClick={() => navigate("/")}>🏠 首页</button>
+          <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
-        <div style={{ padding: "8px 0", borderBottom: "1px solid #e0e0e0", marginBottom: 8 }}>
-          <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
-        </div>
-        {STEPS.map((step) => {
-          const status = stepStatus[step.key] || "idle";
+      </nav>
+      <div className="workspace">
+        <div className="workspace-sidebar">
+          <div style={{ padding: "12px 20px 12px", borderBottom: "1px solid #e0e0e0", marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#1a73e8", marginBottom: 10 }}>转换步骤</div>
+            <ModelConfig modelIndex={modelIndex} onModelChange={setModelIndex} />
+          </div>
+          {STEPS.map((step) => {
+            const status = stepStatus[step.key] || "idle";
           return (
             <div
               key={step.key}
@@ -470,5 +485,6 @@ export default function WorkspacePage() {
       </div>
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
+    </>
   );
 }
