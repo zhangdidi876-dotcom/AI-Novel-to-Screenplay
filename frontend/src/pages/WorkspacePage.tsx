@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Character, Scene, Screenplay, StepStatus } from "../types";
 import ModelConfig from "../components/ModelConfig";
 
@@ -27,43 +27,47 @@ const TIME_LABELS: Record<string, string> = {
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const convId = searchParams.get("id") || "default";
+
+  const P = (k: string) => `conv_${convId}_${k}`;
 
   const loadSaved = <T,>(key: string, fallback: T): T => {
-    try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    try { const v = sessionStorage.getItem(P(key)); return v ? JSON.parse(v) : fallback; }
     catch { return fallback; }
   };
 
-  const [chapters, setChapters] = useState(() => sessionStorage.getItem("chapters_text") || "");
+  const [chapters, setChapters] = useState(() => sessionStorage.getItem(P("text")) || "");
   const [showPreview, setShowPreview] = useState(false);
   const [modelIndex, setModelIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState<StepKey>(
-    () => loadSaved("ws_step", "input")
+    () => loadSaved("step", "input")
   );
   const [stepStatus, setStepStatus] = useState<Record<string, StepStatus>>(
-    () => loadSaved("ws_status", { input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle" })
+    () => loadSaved("status", { input: "done", characters: "idle", scenes: "idle", script: "idle", export: "idle" })
   );
-  const [characters, setCharacters] = useState<Character[]>(() => loadSaved("ws_characters", []));
-  const [scenes, setScenes] = useState<Scene[]>(() => loadSaved("ws_scenes", []));
-  const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("ws_screenplay", null));
-  const [yamlOutput, setYamlOutput] = useState(() => loadSaved("ws_yaml", ""));
+  const [characters, setCharacters] = useState<Character[]>(() => loadSaved("characters", []));
+  const [scenes, setScenes] = useState<Scene[]>(() => loadSaved("scenes", []));
+  const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("screenplay", null));
+  const [yamlOutput, setYamlOutput] = useState(() => loadSaved("yaml", ""));
   const [error, setError] = useState("");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // 持久化到 sessionStorage
-  useEffect(() => { if (currentStep) sessionStorage.setItem("ws_step", JSON.stringify(currentStep)); }, [currentStep]);
-  useEffect(() => { sessionStorage.setItem("ws_status", JSON.stringify(stepStatus)); }, [stepStatus]);
-  useEffect(() => { sessionStorage.setItem("ws_characters", JSON.stringify(characters)); }, [characters]);
-  useEffect(() => { sessionStorage.setItem("ws_scenes", JSON.stringify(scenes)); }, [scenes]);
-  useEffect(() => { sessionStorage.setItem("ws_screenplay", JSON.stringify(screenplay)); }, [screenplay]);
-  useEffect(() => { if (yamlOutput) sessionStorage.setItem("ws_yaml", JSON.stringify(yamlOutput)); }, [yamlOutput]);
+  // 持久化（按 ID 隔离）
+  useEffect(() => { if (currentStep) sessionStorage.setItem(P("step"), JSON.stringify(currentStep)); }, [currentStep]);
+  useEffect(() => { sessionStorage.setItem(P("status"), JSON.stringify(stepStatus)); }, [stepStatus]);
+  useEffect(() => { sessionStorage.setItem(P("characters"), JSON.stringify(characters)); }, [characters]);
+  useEffect(() => { sessionStorage.setItem(P("scenes"), JSON.stringify(scenes)); }, [scenes]);
+  useEffect(() => { sessionStorage.setItem(P("screenplay"), JSON.stringify(screenplay)); }, [screenplay]);
+  useEffect(() => { if (yamlOutput) sessionStorage.setItem(P("yaml"), JSON.stringify(yamlOutput)); }, [yamlOutput]);
 
   useEffect(() => {
     if (!chapters) {
-      const text = sessionStorage.getItem("chapters_text");
+      const text = sessionStorage.getItem(P("text"));
       if (!text) { navigate("/"); return; }
       setChapters(text);
     }
-  }, [navigate, chapters]);
+  }, [navigate, chapters, convId]);
 
   const anyLoading = Object.values(stepStatus).some((s) => s === "loading");
 
@@ -429,6 +433,17 @@ export default function WorkspacePage() {
       <nav className="navbar">
         <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
         <div className="navbar-links">
+          {(() => {
+            try {
+              const ids: string[] = JSON.parse(sessionStorage.getItem("conv_list") || "[]");
+              return ids.filter((id: string) => id !== convId).slice(0, 3).map((id: string) => (
+                <button key={id} onClick={() => navigate(`/workspace?id=${id}`)}
+                  style={{ fontSize: 11, opacity: 0.7 }}>
+                  🔄 转换 {id.slice(-4)}
+                </button>
+              ));
+            } catch { return null; }
+          })()}
           <button onClick={() => navigate("/")}>🏠 首页</button>
           <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
