@@ -37,10 +37,24 @@ export default function HomePage() {
     setUploading(false);
   };
 
+  const activeIds = (() => {
+    try { return JSON.parse(sessionStorage.getItem("conv_list") || "[]") as string[]; }
+    catch { return []; }
+  })();
+
   const handleStart = () => {
     if (!text.trim()) return;
-    sessionStorage.setItem("chapters_text", text);
-    navigate("/workspace");
+    const id = Date.now().toString(36);
+    sessionStorage.setItem(`conv_${id}_text`, text);
+    // 添加到活跃列表
+    const list = (() => {
+      try { return JSON.parse(sessionStorage.getItem("conv_list") || "[]"); }
+      catch { return []; }
+    })();
+    list.unshift(id);
+    if (list.length > 10) list.length = 10; // 最多保留10个
+    sessionStorage.setItem("conv_list", JSON.stringify(list));
+    navigate(`/workspace?id=${id}`);
   };
 
   return (
@@ -52,8 +66,10 @@ export default function HomePage() {
             {healthOk === null ? "检测中..." : healthOk ? "✅ 已连接" : "❌ 未连接"}
           </span>
           <button onClick={() => navigate("/history")}>📊 历史记录</button>
-          {sessionStorage.getItem("ws_characters") && (
-            <button onClick={() => navigate("/workspace")}>📝 继续上次转换</button>
+          {activeIds.length > 0 && (
+            <button onClick={() => navigate(`/workspace?id=${activeIds[0]}`)}>
+              📝 继续转换 ({activeIds.length})
+            </button>
           )}
         </div>
       </nav>
