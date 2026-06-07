@@ -21,32 +21,38 @@ export default function HistoryPage() {
   const navigate = useNavigate();
   const [list, setList] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [detailId, setDetailId] = useState<number | null>(null);
-  const [detail, setDetail] = useState<{ input_text: string; output_yaml: string } | null>(null);
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameText, setRenameText] = useState("");
 
-  useEffect(() => {
+  const refresh = () => {
     fetch("/api/history")
       .then((r) => r.json())
       .then((d) => { setList(d.history || []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
-
-  const handleView = async (id: number) => {
-    setDetailId(id);
-    try {
-      const res = await fetch(`/api/history/${id}`);
-      const d = await res.json();
-      setDetail(d);
-    } catch {
-      setDetail(null);
-    }
   };
+
+  useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (id: number) => {
     if (!confirm("确定删除？")) return;
     await fetch(`/api/history/${id}`, { method: "DELETE" });
     setList((l) => l.filter((r) => r.id !== id));
-    if (detailId === id) { setDetailId(null); setDetail(null); }
+  };
+
+  const startRename = (r: HistoryItem) => {
+    setRenamingId(r.id);
+    setRenameText(r.title);
+  };
+
+  const confirmRename = async (id: number) => {
+    if (!renameText.trim()) return;
+    await fetch(`/api/history/${id}/rename`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: renameText }),
+    });
+    setList((l) => l.map((r) => (r.id === id ? { ...r, title: renameText } : r)));
+    setRenamingId(null);
   };
 
   return (
@@ -71,8 +77,26 @@ export default function HistoryPage() {
       {list.map((r) => (
         <div key={r.id} className="card" style={{ marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontWeight: 600 }}>{r.title || "未命名项目"}</div>
+            <div style={{ flex: 1 }}>
+              {renamingId === r.id ? (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={renameText}
+                    onChange={(e) => setRenameText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") confirmRename(r.id); if (e.key === "Escape") setRenamingId(null); }}
+                    className="form-input"
+                    style={{ width: 200, padding: "4px 8px" }}
+                    autoFocus
+                  />
+                  <button className="btn btn-sm btn-primary" onClick={() => confirmRename(r.id)}>确定</button>
+                  <button className="btn btn-sm" onClick={() => setRenamingId(null)}>取消</button>
+                </div>
+              ) : (
+                <div style={{ fontWeight: 600, cursor: "pointer" }} onClick={() => navigate(`/history/${r.id}`)}>
+                  {r.title || "未命名项目"}
+                  <span style={{ fontSize: 11, color: "#999", marginLeft: 8, fontWeight: 400 }}>点击查看详情 →</span>
+                </div>
+              )}
               <div style={{ fontSize: 12, color: "#999" }}>
                 {r.chapter_count} 章 · {r.created_at?.slice(0, 10)}
                 <span style={{
@@ -84,32 +108,16 @@ export default function HistoryPage() {
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               {r.session_id && r.status !== "completed" && (
                 <button className="btn btn-sm btn-primary"
-                  onClick={() => navigate(`/workspace?id=${r.session_id}`)}>
-                  继续
-                </button>
+                  onClick={() => navigate(`/workspace?id=${r.session_id}`)}>继续</button>
               )}
-              <button className="btn btn-sm" onClick={() => handleView(r.id)}>
-                {detailId === r.id ? "收起" : "查看"}
-              </button>
-              <button className="btn btn-sm" style={{ color: "#c5221f" }} onClick={() => handleDelete(r.id)}>
-                删除
-              </button>
+              <button className="btn btn-sm" onClick={() => navigate(`/history/${r.id}`)}>查看</button>
+              <button className="btn btn-sm" onClick={() => startRename(r)}>✏️</button>
+              <button className="btn btn-sm" style={{ color: "#c5221f" }} onClick={() => handleDelete(r.id)}>删除</button>
             </div>
           </div>
-          {detailId === r.id && detail && (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
-                原文 {detail.input_text?.length?.toLocaleString() || 0} 字符
-              </div>
-              <div className="yaml-preview" style={{ maxHeight: 300 }}>
-                {detail.output_yaml?.slice(0, 2000)}
-                {(detail.output_yaml?.length || 0) > 2000 && "\n...（已截断）"}
-              </div>
-            </div>
-          )}
         </div>
       ))}
     </div>
