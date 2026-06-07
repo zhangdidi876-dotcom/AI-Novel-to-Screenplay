@@ -46,6 +46,20 @@ export default function HomePage() {
 
   const handleSmartDetect = async () => {
     if (!text.trim()) return;
+    // 检查是否已经格式化过（连续多个第N章标记）
+    const existingMarkers = text.match(/^第\s*[0-9一二三四五六七八九十百千]+\s*[章节回]/gm);
+    if (existingMarkers && existingMarkers.length >= 3) {
+      // 检查是否连续编号
+      const nums = existingMarkers.map(m => {
+        const n = m.match(/\d+/);
+        return n ? parseInt(n[0]) : 0;
+      }).filter(n => n > 0);
+      if (nums.length >= 3 && nums.every((n, i) => i === 0 || n >= nums[i-1])) {
+        showMsg("文本已有章节标记，无需重复格式化", "warn");
+        setDetecting(false);
+        return;
+      }
+    }
     setDetecting(true);
     try {
       const res = await fetch("/api/detect/chapters", {
