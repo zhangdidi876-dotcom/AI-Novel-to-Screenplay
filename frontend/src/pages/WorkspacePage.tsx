@@ -217,13 +217,7 @@ export default function WorkspacePage() {
     setStepStatus((s) => ({ ...s, characters: "loading", scenes: "idle", script: "idle", export: "idle" }));
     setError("");
     try {
-      const res = await fetch("/api/convert/full", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: chapters, model_index: modelIndex }),
-      });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
-      const data = await res.json();
+      const data = await apiCall("/api/convert/full");
       const sp = data.screenplay as Screenplay;
       setScreenplay(sp);
       if (sp.characters) setCharacters(sp.characters);
