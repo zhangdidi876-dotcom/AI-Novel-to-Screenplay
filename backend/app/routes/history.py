@@ -1,8 +1,9 @@
 """转换历史记录路由"""
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, update as sql_update
 
 from ..db.database import get_db
 from ..db.models import ConversionHistory
@@ -35,7 +36,7 @@ async def list_history(db: AsyncSession = Depends(get_db)):
 
 @router.get("/history/{record_id}")
 async def get_history_detail(record_id: int, db: AsyncSession = Depends(get_db)):
-    """获取单条历史记录详情（含 YAML 输出）"""
+    """获取单条历史记录详情"""
     result = await db.execute(
         select(ConversionHistory).where(ConversionHistory.id == record_id)
     )
@@ -53,3 +54,19 @@ async def get_history_detail(record_id: int, db: AsyncSession = Depends(get_db))
         "status": record.status,
         "created_at": record.created_at.isoformat() if record.created_at else "",
     }
+
+
+class RenameRequest(BaseModel):
+    title: str
+
+
+@router.patch("/history/{record_id}/rename")
+async def rename_history(record_id: int, req: RenameRequest, db: AsyncSession = Depends(get_db)):
+    """重命名历史记录"""
+    await db.execute(
+        sql_update(ConversionHistory)
+        .where(ConversionHistory.id == record_id)
+        .values(title=req.title)
+    )
+    await db.commit()
+    return {"status": "ok"}
