@@ -89,13 +89,18 @@ def _detect_chapters_regex(text: str) -> list[dict]:
         start = pos
         end = positions[i + 1] if i + 1 < len(positions) else len(text)
         raw = text[start:end].strip()
-        # 尝试提取标题（第一行）
+        # 提取标题（第一行），正文内容去除标题行避免重复
         first_line_end = raw.find("\n")
-        title = raw[:first_line_end].strip() if first_line_end > 0 else raw[:50]
+        if first_line_end > 0:
+            title = raw[:first_line_end].strip()
+            content = raw[first_line_end:].strip()
+        else:
+            title = raw[:50]
+            content = raw
         chapters.append({
             "number": i + 1,
             "title": title,
-            "content": raw,
+            "content": content,
         })
     return chapters
 
@@ -178,11 +183,16 @@ async def detect_chapters_ai(req: DetectRequest):
             end = breaks[i + 1] if i + 1 < len(breaks) else len(text)
             raw = text[start:end].strip()
             first_line_end = raw.find("\n")
-            title = raw[:first_line_end].strip() if first_line_end > 0 else raw[:50]
+            if first_line_end > 0:
+                title = raw[:first_line_end].strip()
+                content = raw[first_line_end:].strip()
+            else:
+                title = raw[:50]
+                content = raw
             chapters.append({
                 "number": i + 1,
                 "title": title,
-                "content": raw,
+                "content": content,
             })
         return {
             "chapters": chapters,
