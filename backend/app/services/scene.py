@@ -24,22 +24,21 @@ day(白天) / night(夜晚) / dawn(清晨) / dusk(黄昏) / morning(上午) / af
     {{
       "id": "scene_001",
       "scene_number": 1,
-      "slug_line": {{
-        "location": "场景地点描述",
-        "time": "day",
-        "set_details": "场景补充细节"
-      }},
+      "slug_line": "地点描述 - 时间，场景补充",
       "characters_present": ["char_001"],
       "summary": "本场1-2句概要",
       "content": [],
       "transition": "",
-      "source_reference": {{"chapter": 1, "paragraphs": [1, 5]}},
+      "source_reference": {{"chapter": 1, "paragraphs": "1-5"}},
       "notes": ""
     }}
   ]
 }}
 
-## 注意
+## 关键规则
+- slug_line 必须是单一字符串，格式: "地点 - 时间"，如 "林家宅院 - 前厅 - 日"
+- 如有场景细节(set_details)直接追加，如 "城西仓库 - 夜，窗外大雨滂沱"
+- source_reference.paragraphs 用 "1-5" 格式表示第1到5段
 - id 格式为 scene_001、scene_002...按顺序编号
 - characters_present 引用已识别角色的 id
 - 只输出 JSON，不要额外文字

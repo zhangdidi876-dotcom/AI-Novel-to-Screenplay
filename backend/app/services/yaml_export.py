@@ -50,10 +50,7 @@ def _clean(data: dict) -> dict:
         c.setdefault("notes", "")
 
     for s in data.get("scenes", []):
-        sl = s.setdefault("slug_line", {})
-        sl.setdefault("location", "")
-        sl.setdefault("time", "day")
-        sl.setdefault("set_details", "")
+        s.setdefault("slug_line", "")
         s.setdefault("characters_present", [])
         s.setdefault("summary", "")
         s.setdefault("transition", "")

@@ -19,12 +19,6 @@ const STEPS: Step[] = [
   { key: "export", label: "导出 YAML", icon: "📄" },
 ];
 
-const TIME_LABELS: Record<string, string> = {
-  day: "☀️ 日", night: "🌙 夜", dawn: "🌅 清晨", dusk: "🌆 黄昏",
-  morning: "🌤 上午", afternoon: "☀️ 下午", evening: "🌇 傍晚",
-  continuous: "⟳ 连续", later: "⏱ 稍后", same: "⇉ 同时",
-};
-
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -373,10 +367,7 @@ export default function WorkspacePage() {
               <div key={s.id} className="scene-card">
                 <div className="scene-header">
                   <div>
-                    <span className="scene-number">第{s.scene_number}场 — {s.slug_line.location}</span>
-                    <span style={{ marginLeft: 8, fontSize: 12, color: "#666" }}>
-                      {TIME_LABELS[s.slug_line.time] || s.slug_line.time}
-                    </span>
+                    <span className="scene-number">第{s.scene_number}场 — {s.slug_line}</span>
                   </div>
                 </div>
                 <div className="scene-body">
@@ -407,7 +398,7 @@ export default function WorkspacePage() {
             {scenes.map((s) => (
               <div key={s.id} className="scene-card">
                 <div className="scene-header">
-                  <span className="scene-number">第{s.scene_number}场 — {s.slug_line.location}</span>
+                  <span className="scene-number">第{s.scene_number}场 — {s.slug_line}</span>
                 </div>
                 <div className="scene-body">
                   {s.content?.map((elem, j) => {

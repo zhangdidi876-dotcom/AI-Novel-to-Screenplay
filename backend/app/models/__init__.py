@@ -7,9 +7,7 @@ from .screenplay import (
     Meta,
     Relationship,
     Scene,
-    SceneTime,
     Screenplay,
-    SlugLine,
     SourceReference,
 )
 
@@ -19,11 +17,9 @@ __all__ = [
     "Character",
     "CharacterRole",
     "Scene",
-    "SceneTime",
     "ContentElement",
     "ElementType",
     "Relationship",
-    "SlugLine",
     "SourceReference",
     "ChapterSource",
 ]

@@ -7,18 +7,6 @@ export type CharacterRole =
   | "minor"
   | "extra";
 
-export type SceneTime =
-  | "day"
-  | "night"
-  | "dawn"
-  | "dusk"
-  | "morning"
-  | "afternoon"
-  | "evening"
-  | "continuous"
-  | "later"
-  | "same";
-
 export type ElementType =
   | "action"
   | "dialogue"
@@ -63,15 +51,9 @@ export interface Character {
   notes: string;
 }
 
-export interface SlugLine {
-  location: string;
-  time: SceneTime;
-  set_details: string;
-}
-
 export interface SourceReference {
   chapter: number;
-  paragraphs: number[];
+  paragraphs: string;  // "1-5" = 第1段到第5段
 }
 
 export interface ContentElement {
@@ -84,7 +66,7 @@ export interface ContentElement {
 export interface Scene {
   id: string;
   scene_number: number;
-  slug_line: SlugLine;
+  slug_line: string;  // "地点 - 时间"
   characters_present: string[];
   summary: string;
   content: ContentElement[];
