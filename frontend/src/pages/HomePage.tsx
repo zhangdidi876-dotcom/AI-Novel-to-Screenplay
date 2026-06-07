@@ -98,10 +98,10 @@ export default function HomePage() {
           <button onClick={() => navigate("/history")}>📊 历史记录</button>
         </div>
       </nav>
-      <div style={{ maxWidth: 720, margin: "40px auto", padding: 24 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h1 style={{ fontSize: 28, marginBottom: 8 }}>将小说转化为剧本</h1>
-          <p style={{ color: "#666", fontSize: 14 }}>
+      <div style={{ maxWidth: 720, margin: "60px auto", padding: 24 }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <h1 className="hero-title">将小说<span>转化为</span>剧本</h1>
+          <p className="hero-subtitle">
             AI 自动提取角色、拆分场景、生成结构化剧本（YAML 格式）
           </p>
         </div>
@@ -152,12 +152,12 @@ export default function HomePage() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
           <div>
-            <span style={{ fontSize: 13, color: chapterCount >= 3 ? "#1e8e3e" : chapterCount > 0 ? "#e37400" : "#999" }}>
+            <span className={`chapter-badge ${chapterCount >= 3 ? "good" : chapterCount > 0 ? "warn" : "none"}`}>
               📊 检测到 {chapterCount} 章
             </span>
             {text.trim() && chapterCount < 3 && (
-              <span style={{ fontSize: 12, color: "#e37400", marginLeft: 8 }}>
-                （章节较少，剧本可能不完整）
+              <span style={{ fontSize: 12, color: "var(--accent-orange)", marginLeft: 8 }}>
+                章节较少，剧本可能不完整
               </span>
             )}
           </div>

@@ -477,17 +477,13 @@ export default function WorkspacePage() {
       </div>
       <div className="workspace-main">
         {anyLoading && (
-          <div style={{
-            background: "#e8f0fe", border: "1px solid #a8c8fa", borderRadius: 6,
-            padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#1a73e8",
-            display: "flex", alignItems: "center", gap: 8,
-          }}>
-            <span style={{ animation: "pulse 1s infinite", fontSize: 16 }}>⏳</span>
+          <div className="info-banner">
+            <span>⏳</span>
             {stepStatus.characters === "loading" && "正在提取角色..."}
             {stepStatus.scenes === "loading" && "正在拆分场景..."}
             {stepStatus.script === "loading" && "正在生成剧本..."}
             {stepStatus.export === "loading" && "正在导出 YAML..."}
-            <span style={{ fontSize: 11, color: "#666" }}>（可自由切换左侧步骤查看历史结果）</span>
+            <span style={{ fontSize: 11, opacity: 0.7 }}>（可自由切换左侧步骤查看历史结果）</span>
           </div>
         )}
         {renderMain()}
