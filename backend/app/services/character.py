@@ -2,7 +2,7 @@
 
 from .ai_client import AIClient, default_client
 
-CHARACTER_PROMPT = """你是一位专业的剧本分析师。请从以下小说章节中提取所有角色信息，输出 JSON。
+CHARACTER_PROMPT = """你是一位专业的剧本分析师。请根据上面提供的小说章节，提取所有角色信息，输出 JSON。
 
 ## 要求
 1. 识别所有有名有姓或有重要戏份的角色
@@ -42,9 +42,6 @@ CHARACTER_PROMPT = """你是一位专业的剧本分析师。请从以下小说�
 - role 只能从 protagonist/antagonist/supporting/minor/extra 中选
 - relationships 中的 target 必须指向其他角色的 id
 - 只输出 JSON，不要额外文字
-
-## 小说章节
-{chapters}
 """
 
 
@@ -56,9 +53,12 @@ async def extract_characters(
     if client is None:
         client = default_client
 
-    prompt = CHARACTER_PROMPT.format(chapters=chapters)
+    # 章节文本放第一条消息 → 多步调用共享缓存前缀
     response = await client.chat(
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "user", "content": f"以下是要改编的小说原文：\n\n{chapters}"},
+            {"role": "user", "content": CHARACTER_PROMPT},
+        ],
         temperature=0.3,
         max_tokens=16384,
         json_mode=True,

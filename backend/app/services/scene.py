@@ -4,7 +4,7 @@ import json
 
 from .ai_client import AIClient, default_client
 
-SCENE_PROMPT = """你是一位专业的剧本分析师。请将以下小说章节拆分为剧本场景，输出 JSON。
+SCENE_PROMPT = """你是一位专业的剧本分析师。请根据上面提供的小说章节和已识别角色列表，将章节拆分为剧本场景，输出 JSON。
 
 ## 要求
 1. 按叙事顺序拆分场景，每个场景是一个相对完整的情节单元
@@ -39,15 +39,10 @@ day(白天) / night(夜晚) / dawn(清晨) / dusk(黄昏) / morning(上午) / af
 - slug_line 必须遵循好莱坞标准格式: "INT./EXT. 地点 - 时间"
   * INT. = 内景（室内场景）例如 "INT. 林家宅院 - 前厅 - 日"
   * EXT. = 外景（室外场景）例如 "EXT. 城西仓库 - 夜，窗外大雨滂沱"
-  * INT./EXT. = 内外交替，极少使用
-- 如有场景细节直接追加在时间后，例如 "EXT. 操场 - 黄昏，秋风萧瑟"
 - source_reference.paragraphs 用 "1-5" 格式表示第1段到第5段
 - id 格式为 scene_001、scene_002...按顺序编号
 - characters_present 引用已识别角色的 id
 - 只输出 JSON，不要额外文字
-
-## 小说章节
-{chapters}
 """
 
 
@@ -60,17 +55,19 @@ async def extract_scenes(
     if client is None:
         client = default_client
 
-    # 简化角色信息传给 AI
     chars_summary = [
         {"id": c.get("id"), "name": c.get("name"), "role": c.get("role")}
         for c in characters
     ]
     prompt = SCENE_PROMPT.format(
         characters=json.dumps(chars_summary, ensure_ascii=False, indent=2),
-        chapters=chapters,
     )
+    # 章节文本放第一条消息 → 与角色提取共享缓存前缀
     response = await client.chat(
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "user", "content": f"以下是要改编的小说原文：\n\n{chapters}"},
+            {"role": "user", "content": prompt},
+        ],
         temperature=0.3,
         max_tokens=16384,
         json_mode=True,
