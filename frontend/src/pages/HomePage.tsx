@@ -100,7 +100,7 @@ export default function HomePage() {
       </nav>
       <div style={{ maxWidth: 720, margin: "60px auto", padding: 24 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <h1 className="hero-title">将小说<span>转化为</span>剧本</h1>
+          <h1 className="hero-title">将小说<mark>转化为</mark>剧本</h1>
           <p className="hero-subtitle">
             AI 自动提取角色、拆分场景、生成结构化剧本（YAML 格式）
           </p>
