@@ -37,7 +37,41 @@ export default function HomePage() {
     setUploading(false);
   };
 
+  const [detecting, setDetecting] = useState(false);
   const [activeIds, setActiveIds] = useState<string[]>([]);
+
+  const handleSmartDetect = async () => {
+    if (!text.trim()) return;
+    setDetecting(true);
+    try {
+      const res = await fetch("/api/detect/chapters", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (data.chapter_count >= 2) {
+        const formatted = data.chapters.map((c: any) =>
+          `第${c.number}章 ${c.title}\n${c.content}`).join("\n\n");
+        setText(formatted);
+        alert(`✅ 检测到 ${data.chapter_count} 个章节，已自动格式化`);
+      } else {
+        const aiRes = await fetch("/api/detect/chapters/ai", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        const aiData = await aiRes.json();
+        if (aiData.chapter_count >= 2) {
+          const formatted = aiData.chapters.map((c: any) =>
+            `第${c.number}章 ${c.title}\n${c.content}`).join("\n\n");
+          setText(formatted);
+          alert(`🤖 AI 检测到 ${aiData.chapter_count} 个章节，已自动格式化`);
+        } else {
+          alert("未检测到章节结构，将作为全文处理。如有多章，请确保章节间有明显分界。");
+        }
+      }
+    } catch { alert("检测失败，请检查后端"); }
+    setDetecting(false);
+  };
 
   // 每次进入首页时刷新活跃转换列表
   useEffect(() => {
@@ -98,9 +132,20 @@ export default function HomePage() {
       </div>
 
       <div className="card">
-        <div className="card-title">📝 或直接粘贴章节文本</div>
+        <div className="card-title">
+          📝 粘贴章节文本
+          {text.trim() && (
+            <button
+              onClick={handleSmartDetect} disabled={detecting}
+              className="btn btn-sm"
+              style={{ marginLeft: 12, fontSize: 12, background: "#e8f0fe", color: "#1a73e8" }}
+            >
+              {detecting ? "⏳ 识别中..." : "🔍 智能分段"}
+            </button>
+          )}
+        </div>
         <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
-          用 "第X章" 或 "Chapter X" 分隔章节（建议 3 章以上）
+          支持任意格式粘贴，点击「智能分段」自动识别章节边界
         </p>
         <textarea
           value={text} onChange={(e) => setText(e.target.value)}
