@@ -38,6 +38,11 @@ export default function HomePage() {
   };
 
   const [detecting, setDetecting] = useState(false);
+  const [localToast, setLocalToast] = useState<{msg: string; type: string} | null>(null);
+  const showMsg = (msg: string, type = "success") => {
+    setLocalToast({ msg, type });
+    setTimeout(() => setLocalToast(null), 3500);
+  };
 
   const handleSmartDetect = async () => {
     if (!text.trim()) return;
@@ -52,7 +57,7 @@ export default function HomePage() {
         const formatted = data.chapters.map((c: any) =>
           `第${c.number}章 ${c.title}\n${c.content}`).join("\n\n");
         setText(formatted);
-        alert(`✅ 检测到 ${data.chapter_count} 个章节，已自动格式化`);
+        showMsg(`检测到 ${data.chapter_count} 个章节，已自动格式化`);
       } else {
         const aiRes = await fetch("/api/detect/chapters/ai", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -63,12 +68,12 @@ export default function HomePage() {
           const formatted = aiData.chapters.map((c: any) =>
             `第${c.number}章 ${c.title}\n${c.content}`).join("\n\n");
           setText(formatted);
-          alert(`🤖 AI 检测到 ${aiData.chapter_count} 个章节，已自动格式化`);
+          showMsg(`AI 检测到 ${aiData.chapter_count} 个章节，已自动格式化`);
         } else {
-          alert("未检测到章节结构，将作为全文处理。如有多章，请确保章节间有明显分界。");
+          showMsg("未检测到章节结构，将作为全文处理", "warn");
         }
       }
-    } catch { alert("检测失败，请检查后端"); }
+    } catch { showMsg("检测失败，请检查后端", "error"); }
     setDetecting(false);
   };
 
@@ -169,6 +174,11 @@ export default function HomePage() {
         </div>
       </div>
       </div>
+      {localToast && (
+        <div className={`toast ${localToast.type === "error" ? "error" : "success"}`}>
+          {localToast.msg}
+        </div>
+      )}
     </>
   );
 }
