@@ -112,10 +112,12 @@ export default function WorkspacePage() {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading" }));
     setError("");
+    doSaveHistory("", "running");
     try {
       const data = await apiCall("/api/extract/characters");
       setCharacters(data.characters || []);
       setStepStatus((s) => ({ ...s, characters: "done" }));
+      doSaveHistory("", "partial");
       showToast("success", `提取 ${data.count || 0} 个角色`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "未知错误");
@@ -149,6 +151,7 @@ export default function WorkspacePage() {
       if (data.characters) setCharacters(data.characters);
       setScenes(data.scenes || []);
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done" }));
+      doSaveHistory("", "partial");
       showToast("success", `拆分 ${data.scene_count || 0} 个场景`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "未知错误");
@@ -185,6 +188,7 @@ export default function WorkspacePage() {
       if (sp.characters) setCharacters(sp.characters);
       if (sp.scenes) setScenes(sp.scenes);
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
+      doSaveHistory("", "partial");
       showToast("success", "剧本生成完成");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "未知错误");
@@ -193,21 +197,23 @@ export default function WorkspacePage() {
     }
   };
 
-  const doSaveHistory = async (yaml: string) => {
+  const doSaveHistory = async (yaml: string, status: string = "completed") => {
     try {
       const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
       await fetch("/api/history/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          session_id: convId,
           title: screenplay?.meta?.title || "未命名项目",
           chapter_count: chMatch ? chMatch.length : 0,
           model_name: `model_${modelIndex}`,
           input_text: chapters,
           output_yaml: yaml,
+          status,
         }),
       });
-    } catch { /* 静默失败，不影响主流程 */ }
+    } catch { /* 静默失败 */ }
   };
 
   // ── 一键全流程 ──
@@ -215,6 +221,7 @@ export default function WorkspacePage() {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading", scenes: "idle", script: "idle", export: "idle" }));
     setError("");
+    doSaveHistory("", "running");  // 立即创建记录
     try {
       const res = await fetch("/api/convert/full", {
         method: "POST",
@@ -229,7 +236,7 @@ export default function WorkspacePage() {
       if (sp.scenes) setScenes(sp.scenes);
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", `完成: ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
-      doSaveHistory("");
+      doSaveHistory("", "completed");
       setCurrentStep("script");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "未知错误";
@@ -255,7 +262,7 @@ export default function WorkspacePage() {
       const data = await res.json();
       const yaml = data.yaml || "";
       setYamlOutput(yaml);
-      await doSaveHistory(yaml);
+      await doSaveHistory(yaml, "completed");
       setStepStatus((s) => ({ ...s, export: "done" }));
       showToast("success", "YAML 已生成，历史已自动保存");
     } catch (err: unknown) {
@@ -454,12 +461,24 @@ export default function WorkspacePage() {
       <nav className="navbar">
         <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
         <div className="navbar-links">
-          {siblingIds.map((id: string) => (
+          {siblingIds.length > 0 && siblingIds.length < 3 && siblingIds.map((id: string) => (
             <button key={id} onClick={() => navigate(`/workspace?id=${id}`)}
               style={{ fontSize: 11, opacity: 0.7 }}>
               🔄 转换 {id.slice(-4)}
             </button>
           ))}
+          {siblingIds.length >= 3 && (
+            <select
+              value=""
+              onChange={(e) => { if (e.target.value) navigate(`/workspace?id=${e.target.value}`); }}
+              style={{ fontSize: 12, padding: "4px 8px", borderRadius: 4, border: "1px solid #ddd", background: "#fff" }}
+            >
+              <option value="">🔄 切换转换 ({siblingIds.length})</option>
+              {siblingIds.map((id: string) => (
+                <option key={id} value={id}>转换 {id.slice(-6)}</option>
+              ))}
+            </select>
+          )}
           <button onClick={() => navigate("/")}>🏠 首页</button>
           <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
