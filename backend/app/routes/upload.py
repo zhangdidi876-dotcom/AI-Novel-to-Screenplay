@@ -54,6 +54,18 @@ async def upload_text(text: str = Form(...)):
 
 # ── 智能章节检测 ──────────────────────────────────────────
 
+# 用于清洗标题中已存在的章节标记
+STRIP_TITLE_RE = re.compile(
+    r'^\s*(第\s*[一二三四五六七八九十百千0-9]+\s*[章节回卷集部篇]\s*|Chapter\s+\d+\s*|Part\s+\d+\s*)+'
+    r'[：:.\s、。，,!！?？]*'
+)
+
+
+def _strip_title(raw_title: str) -> str:
+    """移除标题中已有的章节标记，避免重复"""
+    return STRIP_TITLE_RE.sub("", raw_title).strip()
+
+
 CHAPTER_PATTERNS = [
     # 中文: 第X章 / 第X回 / 第X卷 / 第X节
     re.compile(r'^[  \t]*第\s*[一二三四五六七八九十百千0-9]+\s*[章节回卷集部篇]', re.MULTILINE),
@@ -92,10 +104,10 @@ def _detect_chapters_regex(text: str) -> list[dict]:
         # 提取标题（第一行），正文内容去除标题行避免重复
         first_line_end = raw.find("\n")
         if first_line_end > 0:
-            title = raw[:first_line_end].strip()
+            title = _strip_title(raw[:first_line_end].strip())
             content = raw[first_line_end:].strip()
         else:
-            title = raw[:50]
+            title = _strip_title(raw[:50])
             content = raw
         chapters.append({
             "number": i + 1,
@@ -184,10 +196,10 @@ async def detect_chapters_ai(req: DetectRequest):
             raw = text[start:end].strip()
             first_line_end = raw.find("\n")
             if first_line_end > 0:
-                title = raw[:first_line_end].strip()
+                title = _strip_title(raw[:first_line_end].strip())
                 content = raw[first_line_end:].strip()
             else:
-                title = raw[:50]
+                title = _strip_title(raw[:50])
                 content = raw
             chapters.append({
                 "number": i + 1,
