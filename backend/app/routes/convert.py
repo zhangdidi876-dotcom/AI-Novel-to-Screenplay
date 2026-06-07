@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -26,11 +27,13 @@ class ConvertRequest(BaseModel):
 
 
 class SaveRequest(BaseModel):
+    session_id: str = ""
     title: str
     chapter_count: int
     model_name: str
     input_text: str
     output_yaml: str
+    status: str = "running"  # running / partial / completed
 
 
 class ExportRequest(BaseModel):
@@ -182,15 +185,43 @@ async def validate_yaml(req: ValidateRequest):
 
 @router.post("/history/save")
 async def save_history(req: SaveRequest, db: AsyncSession = Depends(get_db)):
-    """保存转换结果到本地数据库"""
+    """保存/更新转换结果（按 session_id upsert）"""
+    from sqlalchemy import update as sql_update
+
+    if req.session_id:
+        result = await db.execute(
+            select(ConversionHistory).where(ConversionHistory.session_id == req.session_id)
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            # 更新已有记录
+            await db.execute(
+                sql_update(ConversionHistory)
+                .where(ConversionHistory.session_id == req.session_id)
+                .values(
+                    title=req.title or existing.title,
+                    chapter_count=req.chapter_count or existing.chapter_count,
+                    model_name=req.model_name or existing.model_name,
+                    input_text=req.input_text or existing.input_text,
+                    output_yaml=req.output_yaml or existing.output_yaml,
+                    status=req.status,
+                    updated_at=func.now(),
+                )
+            )
+            await db.commit()
+            return {"id": existing.id, "status": "updated", "session_id": req.session_id}
+
+    # 新建
     record = ConversionHistory(
+        session_id=req.session_id,
         title=req.title,
         chapter_count=req.chapter_count,
         model_name=req.model_name,
         input_text=req.input_text,
         output_yaml=req.output_yaml,
+        status=req.status,
     )
     db.add(record)
     await db.commit()
     await db.refresh(record)
-    return {"id": record.id, "status": "saved"}
+    return {"id": record.id, "status": "created", "session_id": req.session_id}

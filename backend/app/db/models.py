@@ -13,11 +13,13 @@ class ConversionHistory(Base):
     __tablename__ = "conversion_history"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(default="", index=True)  # 前端生成，用于 upsert
     title: Mapped[str] = mapped_column(default="未命名项目")
     chapter_count: Mapped[int] = mapped_column(default=0)
     model_name: Mapped[str] = mapped_column(default="")
     input_text: Mapped[str] = mapped_column(Text, default="")
     output_yaml: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(default="running")  # running / partial / completed
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now()
     )

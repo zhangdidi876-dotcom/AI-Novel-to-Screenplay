@@ -3,11 +3,19 @@ import { useNavigate } from "react-router-dom";
 
 interface HistoryItem {
   id: number;
+  session_id: string;
   title: string;
   chapter_count: number;
   model_name: string;
+  status: string;
   created_at: string;
 }
+
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+  running: { label: "进行中", color: "#e37400", bg: "#fef7e0" },
+  partial: { label: "部分完成", color: "#1a73e8", bg: "#e8f0fe" },
+  completed: { label: "已完成", color: "#1e8e3e", bg: "#e6f4ea" },
+};
 
 export default function HistoryPage() {
   const navigate = useNavigate();
@@ -66,10 +74,23 @@ export default function HistoryPage() {
             <div>
               <div style={{ fontWeight: 600 }}>{r.title || "未命名项目"}</div>
               <div style={{ fontSize: 12, color: "#999" }}>
-                {r.chapter_count} 章 · 模型 {r.model_name} · {r.created_at?.slice(0, 10)}
+                {r.chapter_count} 章 · {r.created_at?.slice(0, 10)}
+                <span style={{
+                  fontSize: 11, marginLeft: 6, padding: "1px 6px", borderRadius: 8,
+                  background: (STATUS_MAP[r.status] || STATUS_MAP.completed).bg,
+                  color: (STATUS_MAP[r.status] || STATUS_MAP.completed).color,
+                }}>
+                  {(STATUS_MAP[r.status] || STATUS_MAP.completed).label}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
+              {r.session_id && r.status !== "completed" && (
+                <button className="btn btn-sm btn-primary"
+                  onClick={() => navigate(`/workspace?id=${r.session_id}`)}>
+                  继续
+                </button>
+              )}
               <button className="btn btn-sm" onClick={() => handleView(r.id)}>
                 {detailId === r.id ? "收起" : "查看"}
               </button>
