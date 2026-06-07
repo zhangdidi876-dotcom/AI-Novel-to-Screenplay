@@ -45,16 +45,7 @@ export default function WorkspacePage() {
   const [screenplay, setScreenplay] = useState<Screenplay | null>(() => loadSaved("screenplay", null));
   const [yamlOutput, setYamlOutput] = useState(() => loadSaved("yaml", ""));
   const [error, setError] = useState("");
-  const [siblingIds, setSiblingIds] = useState<string[]>([]);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-  // 同步同级转换列表
-  useEffect(() => {
-    try {
-      const list: string[] = JSON.parse(sessionStorage.getItem("conv_list") || "[]");
-      setSiblingIds(list.filter((id: string) => id !== convId).slice(0, 5));
-    } catch { setSiblingIds([]); }
-  }, [convId]);
 
   // 持久化（按 ID 隔离）
   useEffect(() => { if (currentStep) sessionStorage.setItem(P("step"), JSON.stringify(currentStep)); }, [currentStep]);
@@ -90,6 +81,25 @@ export default function WorkspacePage() {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const doSaveHistory = async (yaml: string, status: string = "completed") => {
+    try {
+      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
+      await fetch("/api/history/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: convId,
+          title: screenplay?.meta?.title || "未命名项目",
+          chapter_count: chMatch ? chMatch.length : 0,
+          model_name: `model_${modelIndex}`,
+          input_text: chapters,
+          output_yaml: yaml,
+          status,
+        }),
+      });
+    } catch (e) { console.error("保存历史失败:", e); }
+  };
 
   const apiCall = async (url: string): Promise<any> => {
     // 任何转换 API 调用自动保存 running 状态
@@ -190,25 +200,6 @@ export default function WorkspacePage() {
       setStepStatus((s) => ({ ...s, script: "error" }));
       showToast("error", "剧本生成失败");
     }
-  };
-
-  const doSaveHistory = async (yaml: string, status: string = "completed") => {
-    try {
-      const chMatch = chapters.match(/(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)/gi);
-      await fetch("/api/history/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: convId,
-          title: screenplay?.meta?.title || "未命名项目",
-          chapter_count: chMatch ? chMatch.length : 0,
-          model_name: `model_${modelIndex}`,
-          input_text: chapters,
-          output_yaml: yaml,
-          status,
-        }),
-      });
-    } catch { /* 静默失败 */ }
   };
 
   // ── 一键全流程 ──
@@ -397,10 +388,11 @@ export default function WorkspacePage() {
                 <div className="scene-body">
                   {s.content?.map((elem, j) => {
                     const cls = `content-element type-${elem.element_type}`;
+                    const charName = (id: string) => characters.find(c => c.id === id)?.name || id;
                     if (elem.element_type === "action") return <div key={j} className={cls}>{elem.text}</div>;
                     if (elem.element_type === "dialogue") return (
                       <div key={j} className={cls}>
-                        <span className="speaker">{elem.character_id || "?"}:</span>
+                        <span className="speaker">{charName(elem.character_id)}:</span>
                         {elem.parenthetical && <span style={{ fontStyle: "italic", color: "#666", fontSize: 12 }}>{elem.parenthetical} </span>}
                         {elem.text}
                       </div>
@@ -446,24 +438,6 @@ export default function WorkspacePage() {
       <nav className="navbar">
         <span className="navbar-brand" onClick={() => navigate("/")}>🎬 AI 剧本创作工具</span>
         <div className="navbar-links">
-          {siblingIds.length > 0 && siblingIds.length < 3 && siblingIds.map((id: string) => (
-            <button key={id} onClick={() => navigate(`/workspace?id=${id}`)}
-              style={{ fontSize: 11, opacity: 0.7 }}>
-              🔄 转换 {id.slice(-4)}
-            </button>
-          ))}
-          {siblingIds.length >= 3 && (
-            <select
-              value=""
-              onChange={(e) => { if (e.target.value) navigate(`/workspace?id=${e.target.value}`); }}
-              style={{ fontSize: 12, padding: "4px 8px", borderRadius: 4, border: "1px solid #ddd", background: "#fff" }}
-            >
-              <option value="">🔄 切换转换 ({siblingIds.length})</option>
-              {siblingIds.map((id: string) => (
-                <option key={id} value={id}>转换 {id.slice(-6)}</option>
-              ))}
-            </select>
-          )}
           <button onClick={() => navigate("/")}>🏠 首页</button>
           <button onClick={() => navigate("/history")}>📊 历史</button>
         </div>
