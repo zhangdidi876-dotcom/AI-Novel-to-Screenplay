@@ -108,10 +108,12 @@ characters:
 scenes:
   - id: string                 # 唯一标识，如 "scene_001"
     scene_number: integer      # 场号，从 1 开始
-    slug_line: string          # 场景标头，格式："地点 - 时间"
-                               #   例: "林家宅院 — 前厅 — 日"
-                               #   例: "城西废弃仓库 — 夜，窗外大雨"
-                               #   set_details 可追加在时间后面
+    slug_line: string          # 场景标头，好莱坞标准格式
+                               #   格式: "INT./EXT. 地点 - 时间"
+                               #   例: "INT. 林家宅院 - 前厅 - 日"
+                               #   例: "EXT. 城西废弃仓库 - 夜，窗外大雨"
+                               #   例: "INT. 张三的公寓 - 客厅 - 日"
+                               #   INT. = 内景  EXT. = 外景  I/E. = 内外交替
     characters_present:        # 出场角色 id 列表
       - string
     summary: string            # 本场概要（1-2 句）
@@ -129,7 +131,7 @@ scenes:
 
 **设计考量：**
 
-- **`slug_line` 使用单一字符串：** 标准剧本格式中场景标头是一行文字（如"内景. 林家宅院 — 日"），拆成 location/time/set_details 三个字段过度工程化，既不符合行业习惯，也增加 AI 输出出错概率。单一字符串格式更接近真实剧本，也更容易被非技术人员理解和编辑。
+- **`slug_line` 使用单一字符串且遵循好莱坞标准：** 标准剧本格式中场景标头是一行文字，必须包含 INT.（内景）/ EXT.（外景）前缀，格式为 "INT./EXT. 地点 - 时间"。拆成多个字段过度工程化。单一字符串格式更接近真实剧本（如 Final Draft 软件输出），也更容易被非技术人员理解和编辑。
 
 - **`content` 使用类型数组而非扁平文本：**
   - 结构化使得前端可以区分渲染动作描写、对白、转场
@@ -206,10 +208,7 @@ screenplay:
   scenes:
     - id: "scene_001"
       scene_number: 1
-      slug_line:
-        location: "荣国府 — 贾母房中"
-        time: "day"
-        set_details: "陈设华贵，丫鬟环伺"
+      slug_line: "INT. 荣国府 - 贾母房中 - 日，陈设华贵，丫鬟环伺"
       characters_present: ["char_001", "char_002"]
       summary: "林黛玉拜见贾母，祖孙相见，悲喜交加。"
       content:
@@ -218,8 +217,7 @@ screenplay:
         - element_type: "dialogue"
           text: "外祖母在上，黛玉给您磕头了。"
           character_id: "char_001"
-        - element_type: "parenthetical"
-          text: "（声音微颤）"
+          parenthetical: "（声音微颤）"
         - element_type: "action"
           text: "贾母早已泪流满面，一把将黛玉搂入怀中。"
         - element_type: "dialogue"
@@ -231,15 +229,12 @@ screenplay:
       transition: "CUT TO:"
       source_reference:
         chapter: 3
-        paragraphs: [12, 15, 16, 17]
+        paragraphs: "12-17"
       notes: ""
 
     - id: "scene_002"
       scene_number: 2
-      slug_line:
-        location: "荣国府 — 贾母房外回廊"
-        time: "same"
-        set_details: ""
+      slug_line: "INT. 荣国府 - 贾母房外回廊 - 连续"
       characters_present: ["char_001"]
       summary: "黛玉稍整仪容，丫鬟引去见贾府诸人。"
       content:
@@ -247,15 +242,16 @@ screenplay:
           text: "黛玉拭去泪水，深吸一口气。丫鬟鸳鸯上前搀扶。"
         - element_type: "dialogue"
           text: "林姑娘，老太太吩咐了，先歇一歇再去见太太奶奶们也不迟。"
-          character_id: ""
+          character_id: "char_003"
           parenthetical: ""
         - element_type: "dialogue"
           text: "不必了。既来了，自当一一拜见，不敢失了礼数。"
           character_id: "char_001"
+          parenthetical: ""
       transition: ""
       source_reference:
         chapter: 3
-        paragraphs: [18, 19]
+        paragraphs: "18-19"
       notes: ""
 ```
 

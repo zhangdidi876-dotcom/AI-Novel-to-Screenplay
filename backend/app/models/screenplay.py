@@ -86,7 +86,7 @@ class Character(BaseModel):
 class Scene(BaseModel):
     id: str = Field(..., description="唯一标识，如 scene_001")
     scene_number: int = Field(..., ge=1)
-    slug_line: str = Field("", description="场景标头: '地点 - 时间'，如 '城西仓库 — 夜，窗外大雨'")
+    slug_line: str = Field("", description="场景标头，好莱坞标准: 'INT./EXT. 地点 - 时间'，如 'INT. 林家宅院 - 前厅 - 日'")
     characters_present: list[str] = Field(default_factory=list)
     summary: str = ""
     content: list[ContentElement] = Field(default_factory=list)

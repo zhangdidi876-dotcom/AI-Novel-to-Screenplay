@@ -66,7 +66,7 @@ export interface ContentElement {
 export interface Scene {
   id: string;
   scene_number: number;
-  slug_line: string;  // "地点 - 时间"
+  slug_line: string;  // 好莱坞标准: "INT./EXT. 地点 - 时间"
   characters_present: string[];
   summary: string;
   content: ContentElement[];
