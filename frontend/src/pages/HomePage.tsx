@@ -38,7 +38,6 @@ export default function HomePage() {
   };
 
   const [detecting, setDetecting] = useState(false);
-  const [activeIds, setActiveIds] = useState<string[]>([]);
 
   const handleSmartDetect = async () => {
     if (!text.trim()) return;
@@ -73,12 +72,6 @@ export default function HomePage() {
     setDetecting(false);
   };
 
-  // 每次进入首页时刷新活跃转换列表
-  useEffect(() => {
-    try { setActiveIds(JSON.parse(sessionStorage.getItem("conv_list") || "[]")); }
-    catch { setActiveIds([]); }
-  }, []);
-
   const handleStart = () => {
     if (!text.trim()) return;
     const id = Date.now().toString(36);
@@ -103,11 +96,6 @@ export default function HomePage() {
             {healthOk === null ? "检测中..." : healthOk ? "✅ 已连接" : "❌ 未连接"}
           </span>
           <button onClick={() => navigate("/history")}>📊 历史记录</button>
-          {activeIds.length > 0 && (
-            <button onClick={() => navigate(`/workspace?id=${activeIds[0]}`)}>
-              📝 继续转换 ({activeIds.length})
-            </button>
-          )}
         </div>
       </nav>
       <div style={{ maxWidth: 720, margin: "40px auto", padding: 24 }}>
