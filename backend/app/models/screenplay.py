@@ -20,19 +20,6 @@ class CharacterRole(str, Enum):
     EXTRA = "extra"
 
 
-class SceneTime(str, Enum):
-    DAY = "day"
-    NIGHT = "night"
-    DAWN = "dawn"
-    DUSK = "dusk"
-    MORNING = "morning"
-    AFTERNOON = "afternoon"
-    EVENING = "evening"
-    CONTINUOUS = "continuous"
-    LATER = "later"
-    SAME = "same"
-
-
 class ElementType(str, Enum):
     ACTION = "action"
     DIALOGUE = "dialogue"
@@ -51,7 +38,7 @@ class Relationship(BaseModel):
 
 class SourceReference(BaseModel):
     chapter: int = Field(..., description="原文章节号")
-    paragraphs: list[int] = Field(default_factory=list, description="原文段落范围")
+    paragraphs: str = Field("", description="原文段落范围，如 '1-5'")
 
 
 class ChapterSource(BaseModel):
@@ -59,17 +46,11 @@ class ChapterSource(BaseModel):
     title: str = ""
 
 
-class SlugLine(BaseModel):
-    location: str = Field(..., description="地点描述")
-    time: SceneTime = Field(..., description="时间")
-    set_details: str = Field("", description="场景补充描述")
-
-
 class ContentElement(BaseModel):
     element_type: ElementType = Field(..., description="元素类型")
     text: str = Field(..., description="内容文本")
-    character_id: str = Field("", description="对白角色 id（仅 dialogue 类型）")
-    parenthetical: str = Field("", description="对白括号备注")
+    character_id: str = Field("", description="对白角色 id（仅 dialogue 类型，必填）")
+    parenthetical: str = Field("", description="仅表演指示：低声/冷笑/愤怒/耳语等")
 
 
 # ── 顶层模型 ───
@@ -105,7 +86,7 @@ class Character(BaseModel):
 class Scene(BaseModel):
     id: str = Field(..., description="唯一标识，如 scene_001")
     scene_number: int = Field(..., ge=1)
-    slug_line: SlugLine
+    slug_line: str = Field("", description="场景标头: '地点 - 时间'，如 '城西仓库 — 夜，窗外大雨'")
     characters_present: list[str] = Field(default_factory=list)
     summary: str = ""
     content: list[ContentElement] = Field(default_factory=list)

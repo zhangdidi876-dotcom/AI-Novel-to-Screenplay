@@ -108,27 +108,28 @@ characters:
 scenes:
   - id: string                 # 唯一标识，如 "scene_001"
     scene_number: integer      # 场号，从 1 开始
-    slug_line:                 # 场景标头
-      location: string         # 地点，如 "林家宅院 — 前厅"
-      time: string             # 时间：day / night / dawn / dusk / morning / afternoon / evening / continuous / later / same
-      set_details: string      # 场景补充描述（可选）
+    slug_line: string          # 场景标头，格式："地点 - 时间"
+                               #   例: "林家宅院 — 前厅 — 日"
+                               #   例: "城西废弃仓库 — 夜，窗外大雨"
+                               #   set_details 可追加在时间后面
     characters_present:        # 出场角色 id 列表
       - string
     summary: string            # 本场概要（1-2 句）
     content:                   # 本场内容，按顺序排列
       - element_type: action   # action | dialogue | parenthetical | transition | shot
         text: string           # 内容文本
-        character_id: string   # 对白角色 id（仅 dialogue 类型）
-        parenthetical: string  # 对白括号备注（仅 dialogue 类型，可选）
+        character_id: string   # 对白角色 id（仅 dialogue 类型，必填）
+        parenthetical: string  # 仅表演指示：低声/冷笑/愤怒/激动/耳语等(可选)
     transition: string         # 转场效果，如 "CUT TO:"（可选）
     source_reference:          # AI 提取依据（可选）
       chapter: integer         # 原文章节号
-      paragraphs:              # 原文段落范围
-        - integer
+      paragraphs: string       # 原文段落范围，如 "1-5" 表示第1段到第5段
     notes: string              # 备注（可选）
 ```
 
 **设计考量：**
+
+- **`slug_line` 使用单一字符串：** 标准剧本格式中场景标头是一行文字（如"内景. 林家宅院 — 日"），拆成 location/time/set_details 三个字段过度工程化，既不符合行业习惯，也增加 AI 输出出错概率。单一字符串格式更接近真实剧本，也更容易被非技术人员理解和编辑。
 
 - **`content` 使用类型数组而非扁平文本：**
   - 结构化使得前端可以区分渲染动作描写、对白、转场
@@ -140,17 +141,19 @@ scenes:
   | 类型 | 用途 | 示例 |
   |------|------|------|
   | `action` | 动作/场景描写 | "林黛玉推门而入，手中捧着一卷诗稿。" |
-  | `dialogue` | 角色对白 | "你可知道，这诗稿写了多久？" |
-  | `parenthetical` | 对白中的情绪/动作指示 | (冷笑) |
+  | `dialogue` | 角色对白，必须填 character_id | "你可知道，这诗稿写了多久？" |
+  | `parenthetical` | **仅限**对白中的情绪/语气指示 | (冷笑)、(低声)、(激动) |
   | `transition` | 转场 | "FADE OUT." |
   | `shot` | 特殊镜头指示 | "CLOSE UP — 手中的诗稿" |
 
-- **`slug_line.time` 使用标准术语：**
-  - `continuous` — 连续时间（同一场景跨时间）
-  - `later` — 稍后
-  - `same` — 同一时间（并行蒙太奇）
+- **`parenthetical` 使用规范：**
+  - ❌ 禁止："（读短信）"、"（听语音）"— 这些是动作，应写成 action
+  - ✅ 允许："（冷笑）"、"（低声）"、"（愤怒）"、"（颤抖）"、"（耳语）"
+  - 短信/语音等内容的角色归属：若内容来自另一个角色（如短信发送者），应新建一个临时角色（如 char_007 "陌生号码"），将该对白标记为 dialogue 并填入对应 character_id
 
-- **`source_reference` 不参与渲染，仅供作者验证 AI 判断是否正确。**
+- **`source_reference.paragraphs` 使用范围字符串：**
+  - 格式 `"1-5"` 表示第1段到第5段，而非 `[1, 5]`（后者容易误解为仅第1段和第5段）
+  - 不参与渲染，仅供作者验证 AI 判断是否正确
 
 ### 完整示例
 
