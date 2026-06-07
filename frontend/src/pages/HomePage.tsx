@@ -108,7 +108,7 @@ export default function HomePage() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">📂 上传章节文件</div>
-        <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>
           支持 .txt / .md / .docx / .pdf 格式
         </p>
         <input
@@ -132,7 +132,7 @@ export default function HomePage() {
             </button>
           )}
         </div>
-        <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 8 }}>
           支持任意格式粘贴，点击「智能分段」自动识别章节边界
         </p>
         <textarea
@@ -141,10 +141,10 @@ export default function HomePage() {
           rows={16} className="form-input"
         />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <span style={{ fontSize: 12, color: "#999" }}>已输入 {text.length.toLocaleString()} 个字符</span>
+          <span style={{ fontSize: 12, color: "var(--text-dim)" }}>已输入 {text.length.toLocaleString()} 个字符</span>
           {text && (
             <button onClick={() => setText("")}
-              style={{ padding: "4px 12px", fontSize: 12, color: "#666", background: "#f0f0f0", border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }}>
+              style={{ padding: "4px 12px", fontSize: 12, color: "var(--text-secondary)", background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", borderRadius: 4, cursor: "pointer" }}>
               清空文本
             </button>
           )}
@@ -163,7 +163,7 @@ export default function HomePage() {
           </div>
           <button onClick={handleStart} disabled={!text.trim()}
             className={`btn ${text.trim() ? "btn-primary" : ""}`}
-            style={!text.trim() ? { background: "#ccc", color: "#fff" } : {}}>
+            style={!text.trim() ? { background: "var(--text-dim)", color: "#fff" } : {}}>
             开始转换 →
           </button>
         </div>

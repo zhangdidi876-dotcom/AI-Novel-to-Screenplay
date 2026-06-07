@@ -271,14 +271,12 @@ export default function WorkspacePage() {
         return (
           <div>
             <h3>📖 章节预览</h3>
-            <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
               共 {chapters.length.toLocaleString()} 字符。确认后开始转换。
               <button
                 onClick={() => setShowPreview(!showPreview)}
-                style={{
-                  marginLeft: 10, padding: "2px 10px", fontSize: 12,
-                  background: "#f0f0f0", border: "1px solid #ddd", borderRadius: 4, cursor: "pointer",
-                }}
+                className="btn btn-sm"
+                style={{ marginLeft: 10 }}
               >
                 {showPreview ? "收起 ▲" : "展开查看 ▼"}
               </button>
@@ -316,14 +314,14 @@ export default function WorkspacePage() {
                   <span className="char-name">{c.name}</span>
                   <span className="char-role">{c.role}</span>
                 </div>
-                <p style={{ fontSize: 13, color: "#666" }}>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                   {[c.gender, c.age, c.occupation].filter(Boolean).join(" · ")}
                 </p>
                 <p style={{ fontSize: 13, margin: "6px 0" }}>{c.description}</p>
                 {c.traits.length > 0 && (
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {c.traits.map((t) => (
-                      <span key={t} style={{ fontSize: 12, padding: "2px 8px", background: "#f0f0f0", borderRadius: 10 }}>{t}</span>
+                      <span key={t} style={{ fontSize: 12, padding: "2px 8px", background: "rgba(0,229,255,0.1)", color: "var(--cyan)", borderRadius: 10 }}>{t}</span>
                     ))}
                   </div>
                 )}
@@ -356,7 +354,7 @@ export default function WorkspacePage() {
                   </div>
                 </div>
                 <div className="scene-body">
-                  <p style={{ fontSize: 13, color: "#666", marginBottom: 8 }}>📍 {s.summary}</p>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>📍 {s.summary}</p>
                   {s.characters_present.length > 0 && (
                     <p style={{ fontSize: 12, marginBottom: 8 }}>出场：{s.characters_present.join(" · ")}</p>
                   )}
@@ -393,7 +391,7 @@ export default function WorkspacePage() {
                     if (elem.element_type === "dialogue") return (
                       <div key={j} className={cls}>
                         <span className="speaker">{charName(elem.character_id)}:</span>
-                        {elem.parenthetical && <span style={{ fontStyle: "italic", color: "#666", fontSize: 12 }}>{elem.parenthetical} </span>}
+                        {elem.parenthetical && <span style={{ fontStyle: "italic", color: "var(--text-secondary)", fontSize: 12 }}>{elem.parenthetical} </span>}
                         {elem.text}
                       </div>
                     );

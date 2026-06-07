@@ -39,7 +39,7 @@ export default function HistoryDetailPage() {
   const charName = (characterId: string) =>
     screenplay?.characters?.find((c: any) => c.id === characterId)?.name || characterId;
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#999" }}>加载中...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-dim)" }}>加载中...</div>;
   if (!record) return <div style={{ padding: 40, textAlign: "center", color: "#c5221f" }}>记录不存在</div>;
 
   return (
@@ -52,7 +52,7 @@ export default function HistoryDetailPage() {
       </nav>
 
       <h2>{record.title || "未命名项目"}</h2>
-      <p style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 16 }}>
         {record.chapter_count} 章 · {record.created_at?.slice(0, 10)} · 状态: {record.status}
       </p>
 
@@ -85,14 +85,14 @@ export default function HistoryDetailPage() {
                     <span className="char-name">{c.name}</span>
                     <span className="char-role">{c.role}</span>
                   </div>
-                  <p style={{ fontSize: 13, color: "#666" }}>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                     {[c.gender, c.age, c.occupation].filter(Boolean).join(" · ")}
                   </p>
-                  <p style={{ fontSize: 13, margin: "6px 0" }}>{c.description}</p>
+                  <p style={{ fontSize: 13, margin: "6px 0", color: "var(--text)" }}>{c.description}</p>
                   {c.traits?.length > 0 && (
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {c.traits.map((t: string) => (
-                        <span key={t} style={{ fontSize: 12, padding: "2px 8px", background: "#f0f0f0", borderRadius: 10 }}>{t}</span>
+                        <span key={t} style={{ fontSize: 12, padding: "2px 10px", background: "rgba(0,229,255,0.1)", color: "var(--cyan)", borderRadius: 10 }}>{t}</span>
                       ))}
                     </div>
                   )}
@@ -109,9 +109,9 @@ export default function HistoryDetailPage() {
                     <span className="scene-number">第{s.scene_number}场 — {s.slug_line}</span>
                   </div>
                   <div className="scene-body">
-                    <p style={{ fontSize: 13, color: "#666" }}>📍 {s.summary}</p>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>📍 {s.summary}</p>
                     {s.characters_present?.length > 0 && (
-                      <p style={{ fontSize: 12, marginTop: 6 }}>出场：{s.characters_present.map(charName).join(" · ")}</p>
+                      <p style={{ fontSize: 12, marginTop: 6, color: "var(--text-secondary)" }}>出场：{s.characters_present.map(charName).join(" · ")}</p>
                     )}
                   </div>
                 </div>
@@ -133,7 +133,7 @@ export default function HistoryDetailPage() {
                       if (elem.element_type === "dialogue") return (
                         <div key={j} className={cls}>
                           <span className="speaker">{charName(elem.character_id)}:</span>
-                          {elem.parenthetical && <span style={{ fontStyle: "italic", color: "#666", fontSize: 12 }}>{elem.parenthetical} </span>}
+                          {elem.parenthetical && <span style={{ fontStyle: "italic", color: "var(--text-secondary)", fontSize: 12 }}>{elem.parenthetical} </span>}
                           {elem.text}
                         </div>
                       );

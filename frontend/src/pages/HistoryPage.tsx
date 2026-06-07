@@ -62,7 +62,7 @@ export default function HistoryPage() {
         <button onClick={() => navigate("/")} className="btn btn-secondary btn-sm">← 返回首页</button>
       </div>
 
-      {loading && <p style={{ color: "#999" }}>加载中...</p>}
+      {loading && <p style={{ color: "var(--text-dim)" }}>加载中...</p>}
 
       {!loading && list.length === 0 && (
         <div className="empty-state">
@@ -94,10 +94,10 @@ export default function HistoryPage() {
               ) : (
                 <div style={{ fontWeight: 600, cursor: "pointer" }} onClick={() => navigate(`/history/${r.id}`)}>
                   {r.title || "未命名项目"}
-                  <span style={{ fontSize: 11, color: "#999", marginLeft: 8, fontWeight: 400 }}>点击查看详情 →</span>
+                  <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 8, fontWeight: 400 }}>点击查看详情 →</span>
                 </div>
               )}
-              <div style={{ fontSize: 12, color: "#999" }}>
+              <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
                 {r.chapter_count} 章 · {r.created_at?.slice(0, 10)}
                 <span style={{
                   fontSize: 11, marginLeft: 6, padding: "1px 6px", borderRadius: 8,
