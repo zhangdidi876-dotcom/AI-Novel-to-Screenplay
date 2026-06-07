@@ -92,6 +92,8 @@ export default function WorkspacePage() {
   }, []);
 
   const apiCall = async (url: string): Promise<any> => {
+    // 任何转换 API 调用自动保存 running 状态
+    doSaveHistory("", "running");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,7 +108,6 @@ export default function WorkspacePage() {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading" }));
     setError("");
-    doSaveHistory("", "running");
     try {
       const data = await apiCall("/api/extract/characters");
       setCharacters(data.characters || []);
@@ -215,15 +216,8 @@ export default function WorkspacePage() {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading", scenes: "idle", script: "idle", export: "idle" }));
     setError("");
-    doSaveHistory("", "running");  // 立即创建记录
     try {
-      const res = await fetch("/api/convert/full", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: chapters, model_index: modelIndex }),
-      });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
-      const data = await res.json();
+      const data = await apiCall("/api/convert/full");
       const sp = data.screenplay as Screenplay;
       setScreenplay(sp);
       if (sp.characters) setCharacters(sp.characters);
