@@ -134,7 +134,35 @@ export default function WorkspacePage() {
     }
   };
 
-  // ── 分步：角色提取 ──
+  // ── 分步流程：用合并接口一次性获取全数据，逐步展示 ──
+  const handleStepByStep = async () => {
+    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "loading", script: "loading" }));
+    setError("");
+    try {
+      // 一次 API 调用拿全数据
+      const data = await apiCall("/api/convert/combined");
+      const sp = data.screenplay as Screenplay;
+      // 逐步展示
+      setCurrentStep("characters");
+      if (sp.characters) setCharacters(sp.characters);
+      setStepStatus((s) => ({ ...s, characters: "done" }));
+      await new Promise(r => setTimeout(r, 600)); // 短暂停顿让用户看到结果
+      setCurrentStep("scenes");
+      if (sp.scenes) setScenes(sp.scenes);
+      setStepStatus((s) => ({ ...s, scenes: "done" }));
+      await new Promise(r => setTimeout(r, 600));
+      setCurrentStep("script");
+      setScreenplay(sp);
+      setStepStatus((s) => ({ ...s, script: "done" }));
+      showToast("success", `✅ ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+    } catch (err: unknown) {
+      if (isAborted(err)) return;
+      setError(err instanceof Error ? err.message : "未知错误");
+      showToast("error", "转换失败");
+    }
+  };
+
+  // ── 单步：仅提取角色（用于重新提取）──
   const handleExtractCharacters = async () => {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading" }));
@@ -305,7 +333,7 @@ export default function WorkspacePage() {
             {showPreview && <div className="chapter-list">{chapters}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn btn-primary" onClick={handleFullConvert}>🚀 一键全流程</button>
-              <button className="btn btn-secondary" onClick={handleExtractCharacters}>分步：角色提取 →</button>
+              <button className="btn btn-secondary" onClick={handleStepByStep}>分步：自动推进 →</button>
             </div>
           </div>
         );
