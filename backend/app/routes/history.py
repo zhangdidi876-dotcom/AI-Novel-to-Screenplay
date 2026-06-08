@@ -70,3 +70,17 @@ async def rename_history(record_id: int, req: RenameRequest, db: AsyncSession = 
     )
     await db.commit()
     return {"status": "ok"}
+
+
+@router.delete("/history/{record_id}")
+async def delete_history(record_id: int, db: AsyncSession = Depends(get_db)):
+    """删除历史记录"""
+    result = await db.execute(
+        select(ConversionHistory).where(ConversionHistory.id == record_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        return {"error": "记录不存在"}
+    await db.delete(record)
+    await db.commit()
+    return {"status": "deleted", "id": record_id}
