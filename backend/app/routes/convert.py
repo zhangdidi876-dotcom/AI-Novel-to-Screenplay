@@ -187,7 +187,7 @@ async def convert_full(
     db: AsyncSession = Depends(get_db),
 ):
     """一键全流程转换"""
-    return await generate_script(req)
+    return await generate_script(req, db=db)
 
 
 # ── YAML 导出与校验 ─────────────────────────────────────
