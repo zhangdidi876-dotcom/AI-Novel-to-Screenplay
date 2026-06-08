@@ -354,7 +354,7 @@ export default function WorkspacePage() {
                 <div className="scene-body">
                   <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>📍 {s.summary}</p>
                   {s.characters_present.length > 0 && (
-                    <p style={{ fontSize: 12, marginBottom: 8 }}>出场：{s.characters_present.join(" · ")}</p>
+                    <p style={{ fontSize: 12, marginBottom: 8 }}>出场：{s.characters_present.map((id: string) => characters.find(c => c.id === id)?.name || id).join(" · ")}</p>
                   )}
                 </div>
               </div>
