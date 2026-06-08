@@ -147,33 +147,16 @@ async def detect_chapters(req: DetectRequest):
 
 @router.post("/detect/chapters/ai")
 async def detect_chapters_ai(req: DetectRequest):
-    """用 AI 检测章节边界（适用于无明确标记的小说文本）"""
-    from ..services.ai_client import AIClient, default_client
+    """用 AI 检测章节边界"""
+    from ..services.ai_client import default_client
+    from ..services.prompts import CHAPTER_DETECT_PROMPT
 
     text = req.text.strip()
     if len(text) < 100:
         return {"chapters": [], "method": "ai", "message": "文本太短"}
 
-    # 只取前8000字让AI分析结构
     sample = text[:8000] if len(text) > 8000 else text
-    prompt = f"""分析以下小说文本，找出所有章节边界位置。
-
-返回 JSON 格式：
-{{"breaks": [100, 520, 980]}}
-
-其中 breaks 数组是每章开始位置的字符索引（从0开始计数）。
-
-常见章节标记：
-- "第X章"、"第X回"、"Chapter X"
-- 大段空行（3行以上）
-- 序号标题（一、/ 1. / (1)）
-- 明显的场景切换
-
-如果没有明显章节边界，返回 breaks: []。
-
-文本：
-{sample}
-"""
+    prompt = CHAPTER_DETECT_PROMPT.format(sample=sample)
     client = default_client
     try:
         response = await client.chat(
