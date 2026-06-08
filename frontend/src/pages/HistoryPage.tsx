@@ -12,9 +12,10 @@ interface HistoryItem {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  running: { label: "进行中", color: "#e37400", bg: "#fef7e0" },
-  partial: { label: "部分完成", color: "#1a73e8", bg: "#e8f0fe" },
-  completed: { label: "已完成", color: "#1e8e3e", bg: "#e6f4ea" },
+  running: { label: "进行中", color: "#ffab40", bg: "rgba(255,171,64,0.1)" },
+  partial: { label: "部分完成", color: "#448aff", bg: "rgba(68,138,255,0.1)" },
+  completed: { label: "已完成", color: "#69f0ae", bg: "rgba(105,240,174,0.1)" },
+  interrupted: { label: "已中断", color: "#ff6e6e", bg: "rgba(255,110,110,0.1)" },
 };
 
 export default function HistoryPage() {
@@ -116,7 +117,7 @@ export default function HistoryPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              {r.session_id && r.status !== "completed" && (
+              {r.session_id && r.status !== "completed" && r.status !== "interrupted" && (
                 <button className="btn btn-sm btn-primary"
                   onClick={() => navigate(`/workspace?id=${r.session_id}`)}>继续</button>
               )}

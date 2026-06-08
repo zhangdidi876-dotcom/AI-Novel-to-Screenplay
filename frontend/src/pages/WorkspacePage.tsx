@@ -102,12 +102,10 @@ export default function WorkspacePage() {
   };
 
   const apiCall = async (url: string): Promise<any> => {
-    // 任何转换 API 调用自动保存 running 状态
-    doSaveHistory("", "running");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chapters, model_index: modelIndex }),
+      body: JSON.stringify({ text: chapters, model_index: modelIndex, session_id: convId }),
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
     return res.json();
