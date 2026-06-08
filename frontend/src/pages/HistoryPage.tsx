@@ -33,10 +33,17 @@ export default function HistoryPage() {
 
   useEffect(() => { refresh(); }, []);
 
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
   const handleDelete = async (id: number) => {
-    if (!confirm("确定删除？")) return;
-    await fetch(`/api/history/${id}`, { method: "DELETE" });
-    setList((l) => l.filter((r) => r.id !== id));
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+    await fetch(`/api/history/${deleteId}`, { method: "DELETE" });
+    setList((l) => l.filter((r) => r.id !== deleteId));
+    setDeleteId(null);
   };
 
   const startRename = (r: HistoryItem) => {
@@ -120,6 +127,38 @@ export default function HistoryPage() {
           </div>
         </div>
       ))}
+
+      {deleteId !== null && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+          animation: "fadeIn 0.2s ease",
+        }} onClick={() => setDeleteId(null)}>
+          <div style={{
+            background: "var(--panel)", backdropFilter: "blur(20px)",
+            border: "1px solid var(--border)", borderRadius: "var(--radius-lg)",
+            padding: 28, maxWidth: 380, width: "90%",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,110,110,0.1)",
+            animation: "scaleIn 0.25s var(--ease-spring)",
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 40, textAlign: "center", marginBottom: 16 }}>⚠️</div>
+            <h3 style={{ textAlign: "center", fontFamily: "var(--font-body)", marginBottom: 8, color: "var(--text)" }}>
+              确认删除
+            </h3>
+            <p style={{ textAlign: "center", fontSize: 13, color: "var(--text-secondary)", marginBottom: 24 }}>
+              此操作不可撤销，删除后数据无法恢复
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn btn-secondary" onClick={() => setDeleteId(null)}>取消</button>
+              <button className="btn btn-primary" style={{
+                background: "linear-gradient(135deg, var(--coral), #d32f2f)",
+                boxShadow: "0 4px 16px rgba(255,110,110,0.3)",
+              }} onClick={confirmDelete}>确认删除</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
