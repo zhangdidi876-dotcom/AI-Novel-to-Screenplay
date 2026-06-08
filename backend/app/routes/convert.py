@@ -24,6 +24,7 @@ router = APIRouter()
 class ConvertRequest(BaseModel):
     text: str
     model_index: int = 0
+    session_id: str = ""
 
 
 class SaveRequest(BaseModel):
@@ -63,19 +64,52 @@ def _get_client(model_index: int = 0) -> AIClient:
     return AIClient()
 
 
+async def _save_history(session_id: str, text: str, status: str, yaml: str = "", db=None):
+    """后端自动保存转换历史"""
+    if not session_id or db is None:
+        return
+    import re
+    from sqlalchemy import update as sql_update
+    ch_match = re.findall(r'(第\s*[一二三四五六七八九十百千0-9]+\s*章|Chapter\s+\d+)', text)
+    chapter_count = len(ch_match)
+    result = await db.execute(
+        select(ConversionHistory).where(ConversionHistory.session_id == session_id)
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        values = {"status": status, "updated_at": func.now()}
+        if yaml: values["output_yaml"] = yaml
+        await db.execute(
+            sql_update(ConversionHistory).where(ConversionHistory.session_id == session_id).values(**values)
+        )
+    else:
+        db.add(ConversionHistory(
+            session_id=session_id, title="未命名项目",
+            chapter_count=chapter_count, model_name="",
+            input_text=text[:500], output_yaml=yaml, status=status,
+        ))
+    await db.commit()
+
+
 # ── 分步端点 ─────────────────────────────────────────────
 
 
 @router.post("/extract/characters")
-async def extract_characters(req: ConvertRequest):
+async def extract_characters(
+    req: ConvertRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """步骤1：从章节文本中提取角色列表"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="章节文本不能为空")
 
+    await _save_history(req.session_id, req.text, "running", db=db)
     try:
         client = _get_client(req.model_index)
         characters = await do_extract_characters(req.text, client)
+        await _save_history(req.session_id, req.text, "partial", db=db)
     except Exception as e:
+        await _save_history(req.session_id, req.text, "interrupted", db=db)
         logger.error(f"角色提取失败: {e}")
         raise HTTPException(status_code=500, detail=f"AI 调用失败: {e}")
 
@@ -83,16 +117,22 @@ async def extract_characters(req: ConvertRequest):
 
 
 @router.post("/extract/scenes")
-async def extract_scenes(req: ConvertRequest):
+async def extract_scenes(
+    req: ConvertRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """步骤2：先提取角色，再拆分为场景"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="章节文本不能为空")
 
+    await _save_history(req.session_id, req.text, "running", db=db)
     try:
         client = _get_client(req.model_index)
         characters = await do_extract_characters(req.text, client)
         scenes = await do_extract_scenes(req.text, characters, client)
+        await _save_history(req.session_id, req.text, "partial", db=db)
     except Exception as e:
+        await _save_history(req.session_id, req.text, "interrupted", db=db)
         logger.error(f"场景拆分失败: {e}")
         raise HTTPException(status_code=500, detail=f"AI 调用失败: {e}")
 
@@ -100,21 +140,26 @@ async def extract_scenes(req: ConvertRequest):
 
 
 @router.post("/generate/script")
-async def generate_script(req: ConvertRequest):
+async def generate_script(
+    req: ConvertRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """步骤3：完整流程 — 角色提取 + 场景拆分 + 剧本内容生成"""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="章节文本不能为空")
 
+    await _save_history(req.session_id, req.text, "running", db=db)
     try:
         client = _get_client(req.model_index)
         characters = await do_extract_characters(req.text, client)
+        await _save_history(req.session_id, req.text, "partial", db=db)
         scenes = await do_extract_scenes(req.text, characters, client)
         script_scenes = await do_generate_script(req.text, characters, scenes, client)
-        # 将生成的 content 合并回场景
         for i, scene in enumerate(scenes):
             if i < len(script_scenes):
                 scene["content"] = script_scenes[i].get("content", [])
     except Exception as e:
+        await _save_history(req.session_id, req.text, "interrupted", db=db)
         logger.error(f"剧本生成失败: {e}")
         raise HTTPException(status_code=500, detail=f"AI 调用失败: {e}")
 
@@ -137,7 +182,10 @@ async def generate_script(req: ConvertRequest):
 
 
 @router.post("/convert/full")
-async def convert_full(req: ConvertRequest):
+async def convert_full(
+    req: ConvertRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """一键全流程转换"""
     return await generate_script(req)
 
