@@ -31,6 +31,7 @@ export default function HomePage() {
       const data = await res.json();
       if (data.error) { alert(data.error); }
       else { setText(data.text || ""); }
+      e.target.value = "";  // 清零可重复上传同名文件
     } catch {
       alert("文件上传失败，请确认后端已启动");
     }
