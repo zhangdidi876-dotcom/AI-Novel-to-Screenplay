@@ -15,6 +15,7 @@ from ..services.ai_client import AIClient
 from ..services.character import extract_characters as do_extract_characters
 from ..services.scene import extract_scenes as do_extract_scenes
 from ..services.script import generate_script as do_generate_script
+from ..services.combined import convert_combined as do_convert_combined
 from ..services.yaml_export import screenplay_to_yaml, yaml_to_screenplay
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,35 @@ async def generate_script(
     }
 
     return {"screenplay": screenplay}
+
+
+@router.post("/convert/combined")
+async def convert_combined(
+    req: ConvertRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """三合一转换 — 一次 API 调用完成角色+场景+剧本"""
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="章节文本不能为空")
+    await _save_history(req.session_id, req.text, "running", db=db)
+    try:
+        client = _get_client(req.model_index)
+        result = await do_convert_combined(req.text, client)
+        await _save_history(req.session_id, req.text, "completed", db=db)
+        screenplay = {
+            "meta": {
+                "title": "", "original_novel": "", "original_author": "",
+                "adapted_by": "AI 辅助改编", "version": "1.0.0",
+                "description": "", "source_chapters": [], "notes": "",
+            },
+            "characters": result["characters"],
+            "scenes": result["scenes"],
+        }
+        return {"screenplay": screenplay}
+    except Exception as e:
+        await _save_history(req.session_id, req.text, "interrupted", db=db)
+        logger.error(f"合并转换失败: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 调用失败: {e}")
 
 
 @router.post("/convert/full")

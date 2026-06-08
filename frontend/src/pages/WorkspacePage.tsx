@@ -225,35 +225,18 @@ export default function WorkspacePage() {
 
   // ── 一键全流程 ──
   const handleFullConvert = async () => {
-    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "idle", script: "idle", export: "idle" }));
+    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "loading", script: "loading", export: "idle" }));
     setError("");
     try {
-      // 步骤1: 提取角色
       setCurrentStep("characters");
-      const charData = await apiCall("/api/extract/characters");
-      setCharacters(charData.characters || []);
-      setStepStatus((s) => ({ ...s, characters: "done" }));
-      showToast("success", `角色: ${charData.count || 0} 个`);
-
-      // 步骤2: 拆分场景
-      setCurrentStep("scenes");
-      setStepStatus((s) => ({ ...s, scenes: "loading" }));
-      const sceneData = await apiCall("/api/extract/scenes");
-      if (sceneData.characters) setCharacters(sceneData.characters);
-      setScenes(sceneData.scenes || []);
-      setStepStatus((s) => ({ ...s, scenes: "done" }));
-      showToast("success", `场景: ${sceneData.scene_count || 0} 个`);
-
-      // 步骤3: 生成剧本
-      setCurrentStep("script");
-      setStepStatus((s) => ({ ...s, script: "loading" }));
-      const scriptData = await apiCall("/api/generate/script");
-      const sp = scriptData.screenplay as Screenplay;
+      const data = await apiCall("/api/convert/combined");
+      const sp = data.screenplay as Screenplay;
       setScreenplay(sp);
       if (sp.characters) setCharacters(sp.characters);
       if (sp.scenes) setScenes(sp.scenes);
-      setStepStatus((s) => ({ ...s, script: "done" }));
+      setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", `✅ 完成: ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+      setCurrentStep("script");
     } catch (err: unknown) {
       if (isAborted(err)) return;
       const msg = err instanceof Error ? err.message : "未知错误";
