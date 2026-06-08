@@ -107,7 +107,12 @@ export default function WorkspacePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: chapters, model_index: modelIndex, session_id: convId }),
     });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "请求失败"); }
+    if (!res.ok) {
+      const text = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(text); msg = j.detail || msg; } catch {}
+      throw new Error(msg);
+    }
     return res.json();
   };
 
