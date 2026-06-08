@@ -6,9 +6,9 @@ from .ai_client import AIClient, default_client
 SCENE_PROMPT = """将以上小说拆分为剧本场景，输出 JSON。
 
 输出格式示例：
-{
+{{
   "scenes": [
-    {
+    {{
       "id": "scene_001",
       "scene_number": 1,
       "slug_line": "INT. 酒楼 - 大厅 - 日",
@@ -16,11 +16,11 @@ SCENE_PROMPT = """将以上小说拆分为剧本场景，输出 JSON。
       "summary": "1-2句概要",
       "content": [],
       "transition": "",
-      "source_reference": {"chapter": 1, "paragraphs": "1-5"},
+      "source_reference": {{"chapter": 1, "paragraphs": "1-5"}},
       "notes": ""
-    }
+    }}
   ]
-}
+}}
 
 slug_line 必须: INT.(内景) / EXT.(外景) + 地点 - 时间
 paragraphs 格式: "1-5" 表示第1至第5段

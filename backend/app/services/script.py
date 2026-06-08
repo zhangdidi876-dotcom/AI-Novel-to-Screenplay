@@ -6,19 +6,19 @@ from .ai_client import AIClient, default_client
 SCRIPT_PROMPT = """为以上场景生成完整剧本内容，输出 JSON。
 
 输出格式示例：
-{
+{{
   "scenes": [
-    {
+    {{
       "id": "scene_001",
       "content": [
-        {"element_type": "action", "text": "张远推门而入。", "character_id": "", "parenthetical": ""},
-        {"element_type": "dialogue", "text": "你好。", "character_id": "char_001", "parenthetical": "低声"},
-        {"element_type": "parenthetical", "text": "冷笑", "character_id": "", "parenthetical": ""},
-        {"element_type": "transition", "text": "CUT TO:", "character_id": "", "parenthetical": ""}
+        {{"element_type": "action", "text": "张远推门而入。", "character_id": "", "parenthetical": ""}},
+        {{"element_type": "dialogue", "text": "你好。", "character_id": "char_001", "parenthetical": "低声"}},
+        {{"element_type": "parenthetical", "text": "冷笑", "character_id": "", "parenthetical": ""}},
+        {{"element_type": "transition", "text": "CUT TO:", "character_id": "", "parenthetical": ""}}
       ]
-    }
+    }}
   ]
-}
+}}
 
 规则:
 - action: 动作描写, 只写可见可拍的内容
