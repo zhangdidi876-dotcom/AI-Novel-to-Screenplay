@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Character, Scene, Screenplay, StepStatus } from "../types";
 import ModelConfig from "../components/ModelConfig";
@@ -77,6 +77,8 @@ export default function WorkspacePage() {
 
   const anyLoading = Object.values(stepStatus).some((s) => s === "loading");
 
+  const isAborted = (e: unknown) => e instanceof Error && e.message === "ABORTED";
+
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3500);
@@ -101,22 +103,66 @@ export default function WorkspacePage() {
     } catch (e) { console.error("保存历史失败:", e); }
   };
 
+  const abortRef = useRef<AbortController | null>(null);
+
+  // 页面离开或新转换开始时中止旧请求
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, [convId]);
+
   const apiCall = async (url: string): Promise<any> => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chapters, model_index: modelIndex, session_id: convId }),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      let msg = `HTTP ${res.status}`;
-      try { const j = JSON.parse(text); msg = j.detail || msg; } catch {}
-      throw new Error(msg);
+    abortRef.current?.abort(); // 中止前一个请求
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: chapters, model_index: modelIndex, session_id: convId }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = `HTTP ${res.status}`;
+        try { const j = JSON.parse(text); msg = j.detail || msg; } catch {}
+        throw new Error(msg);
+      }
+      return res.json();
+    } catch (e: any) {
+      if (e.name === "AbortError") throw new Error("ABORTED");
+      throw e;
     }
-    return res.json();
   };
 
-  // ── 分步：角色提取 ──
+  // ── 分步流程：用合并接口一次性获取全数据，逐步展示 ──
+  const handleStepByStep = async () => {
+    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "loading", script: "loading" }));
+    setError("");
+    try {
+      // 一次 API 调用拿全数据
+      const data = await apiCall("/api/convert/combined");
+      const sp = data.screenplay as Screenplay;
+      // 逐步展示
+      setCurrentStep("characters");
+      if (sp.characters) setCharacters(sp.characters);
+      setStepStatus((s) => ({ ...s, characters: "done" }));
+      await new Promise(r => setTimeout(r, 600)); // 短暂停顿让用户看到结果
+      setCurrentStep("scenes");
+      if (sp.scenes) setScenes(sp.scenes);
+      setStepStatus((s) => ({ ...s, scenes: "done" }));
+      await new Promise(r => setTimeout(r, 600));
+      setCurrentStep("script");
+      setScreenplay(sp);
+      setStepStatus((s) => ({ ...s, script: "done" }));
+      showToast("success", `✅ ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+    } catch (err: unknown) {
+      if (isAborted(err)) return;
+      setError(err instanceof Error ? err.message : "未知错误");
+      showToast("error", "转换失败");
+    }
+  };
+
+  // ── 单步：仅提取角色（用于重新提取）──
   const handleExtractCharacters = async () => {
     setCurrentStep("characters");
     setStepStatus((s) => ({ ...s, characters: "loading" }));
@@ -127,6 +173,7 @@ export default function WorkspacePage() {
       setStepStatus((s) => ({ ...s, characters: "done" }));
       showToast("success", `提取 ${data.count || 0} 个角色`);
     } catch (err: unknown) {
+      if (isAborted(err)) return;
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, characters: "error" }));
       showToast("error", "角色提取失败");
@@ -160,6 +207,7 @@ export default function WorkspacePage() {
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done" }));
       showToast("success", `拆分 ${data.scene_count || 0} 个场景`);
     } catch (err: unknown) {
+      if (isAborted(err)) return;
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, scenes: "error" }));
       showToast("error", "场景拆分失败");
@@ -196,6 +244,7 @@ export default function WorkspacePage() {
       setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", "剧本生成完成");
     } catch (err: unknown) {
+      if (isAborted(err)) return;
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, script: "error" }));
       showToast("error", "剧本生成失败");
@@ -204,36 +253,20 @@ export default function WorkspacePage() {
 
   // ── 一键全流程 ──
   const handleFullConvert = async () => {
-    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "idle", script: "idle", export: "idle" }));
+    setStepStatus((s) => ({ ...s, characters: "loading", scenes: "loading", script: "loading", export: "idle" }));
     setError("");
     try {
-      // 步骤1: 提取角色
       setCurrentStep("characters");
-      const charData = await apiCall("/api/extract/characters");
-      setCharacters(charData.characters || []);
-      setStepStatus((s) => ({ ...s, characters: "done" }));
-      showToast("success", `角色: ${charData.count || 0} 个`);
-
-      // 步骤2: 拆分场景
-      setCurrentStep("scenes");
-      setStepStatus((s) => ({ ...s, scenes: "loading" }));
-      const sceneData = await apiCall("/api/extract/scenes");
-      if (sceneData.characters) setCharacters(sceneData.characters);
-      setScenes(sceneData.scenes || []);
-      setStepStatus((s) => ({ ...s, scenes: "done" }));
-      showToast("success", `场景: ${sceneData.scene_count || 0} 个`);
-
-      // 步骤3: 生成剧本
-      setCurrentStep("script");
-      setStepStatus((s) => ({ ...s, script: "loading" }));
-      const scriptData = await apiCall("/api/generate/script");
-      const sp = scriptData.screenplay as Screenplay;
+      const data = await apiCall("/api/convert/combined");
+      const sp = data.screenplay as Screenplay;
       setScreenplay(sp);
       if (sp.characters) setCharacters(sp.characters);
       if (sp.scenes) setScenes(sp.scenes);
-      setStepStatus((s) => ({ ...s, script: "done" }));
+      setStepStatus((s) => ({ ...s, characters: "done", scenes: "done", script: "done" }));
       showToast("success", `✅ 完成: ${sp.characters?.length || 0} 角色, ${sp.scenes?.length || 0} 场景`);
+      setCurrentStep("script");
     } catch (err: unknown) {
+      if (isAborted(err)) return;
       const msg = err instanceof Error ? err.message : "未知错误";
       setError(msg);
       showToast("error", `转换失败: ${msg}`);
@@ -260,6 +293,7 @@ export default function WorkspacePage() {
       setStepStatus((s) => ({ ...s, export: "done" }));
       showToast("success", "YAML 已生成，历史已自动保存");
     } catch (err: unknown) {
+      if (isAborted(err)) return;
       setError(err instanceof Error ? err.message : "未知错误");
       setStepStatus((s) => ({ ...s, export: "error" }));
     }
@@ -299,7 +333,7 @@ export default function WorkspacePage() {
             {showPreview && <div className="chapter-list">{chapters}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn btn-primary" onClick={handleFullConvert}>🚀 一键全流程</button>
-              <button className="btn btn-secondary" onClick={handleExtractCharacters}>分步：角色提取 →</button>
+              <button className="btn btn-secondary" onClick={handleStepByStep}>分步：自动推进 →</button>
             </div>
           </div>
         );
